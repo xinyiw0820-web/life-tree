@@ -857,6 +857,24 @@ body.ready .art{opacity:1}
 .set-row[aria-pressed="true"] .switch{background:var(--a)}
 .set-row[aria-pressed="true"] .switch::after{transform:translateX(15px)}
 
+.volume-row{cursor:default}
+.volume{
+  -webkit-appearance:none;appearance:none;
+  width:132px;height:3px;border-radius:99px;
+  background:rgba(120,95,55,.2);outline:none;cursor:pointer;
+}
+.volume::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--a);border:2px solid #fffdf7;
+  box-shadow:0 1px 3px rgba(60,40,10,.3);cursor:pointer;
+}
+.volume::-moz-range-thumb{
+  width:12px;height:12px;border-radius:50%;
+  background:var(--a);border:2px solid #fffdf7;cursor:pointer;
+}
+.volume:focus-visible{outline:2px solid rgba(168,118,42,.55);outline-offset:4px}
+
 /* ---------- Toast ---------- */
 .toast{
   position:fixed;left:50%;bottom:28px;z-index:60;
@@ -1580,7 +1598,7 @@ const HOTSPOTS = [
    ============================================================ */
 
 const KEY = 'lifeanchors.mini.v2';
-const state = { seeds:[], seen:[], hidden:[], finished:[], motion:'auto' };
+const state = { seeds:[], seen:[], hidden:[], finished:[], motion:'auto', music:true, volume:40 };
 
 const validIds = list => Array.isArray(list) ? list.filter(id=>CONTENT.some(c=>c.id===id)) : null;
 
@@ -1594,6 +1612,8 @@ function load(){
     const hidden = validIds(s.hidden);    if(hidden) state.hidden = hidden;
     const finished = validIds(s.finished); if(finished) state.finished = finished;
     if(s.motion === 'reduce' || s.motion === 'full') state.motion = s.motion;
+    if(typeof s.music === 'boolean') state.music = s.music;
+    if(typeof s.volume === 'number') state.volume = Math.max(0, Math.min(100, s.volume));
   }catch(e){}
 }
 function save(){
@@ -2018,6 +2038,15 @@ function openSettings(anchor){
         <span>减少动效<small>关掉浮尘、闪光和动画</small></span>
         <span class="switch" aria-hidden="true"></span>
       </button>
+      <button class="set-row" data-act="toggle-music" aria-pressed="${state.music}">
+        <span>背景音乐<small>一段实时生成的环境音，不是音频文件</small></span>
+        <span class="switch" aria-hidden="true"></span>
+      </button>
+      <div class="set-row volume-row">
+        <span>音量</span>
+        <input class="volume" type="range" min="0" max="100" step="1"
+               value="${state.volume}" aria-label="背景音乐音量">
+      </div>
       <button class="set-row" data-act="replay-intro">
         <span>再看一次开场<small>重新播放“不用想好…”那两句</small></span>
         <span aria-hidden="true" style="color:#9a8a6c">↻</span>
@@ -2152,6 +2181,151 @@ function applyMotion(){
 }
 mqReduce.addEventListener?.('change', ()=>{ if(state.motion==='auto') applyMotion(); });
 
+/* ============================================================
+   12.5 背景音乐：实时生成的环境音（无音频文件）
+   ============================================================ */
+
+const MUSIC = {
+  ctx:null, master:null, filter:null, voices:[],
+  chord:0, chordTimer:0, bellTimer:0, tipShown:false,
+  // I–vi–IV–V，四个声部
+  chords:[
+    [146.83, 220.00, 293.66, 369.99],
+    [123.47, 185.00, 246.94, 293.66],
+    [ 98.00, 146.83, 196.00, 246.94],
+    [110.00, 164.81, 220.00, 293.66]
+  ],
+  bells:[587.33, 659.25, 739.99, 880.00, 987.77]
+};
+
+function musicGain(){
+  return Math.max(0, Math.min(100, state.volume)) / 100 * 0.18;
+}
+
+function initMusic(){
+  if(MUSIC.ctx) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC) return;
+  const ctx = new AC();
+
+  const master = ctx.createGain();
+  master.gain.value = 0;
+  master.connect(ctx.destination);
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 1000;
+  filter.Q.value = 0.6;
+  filter.connect(master);
+
+  // 极慢的滤波摆动，让和弦不是死的
+  const lfo = ctx.createOscillator();
+  lfo.frequency.value = 0.045;
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = 260;
+  lfo.connect(lfoGain);
+  lfoGain.connect(filter.frequency);
+  lfo.start();
+
+  const voices = [];
+  for(let i=0;i<4;i++){
+    const pair = [];
+    for(const det of [-4, 4]){
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = MUSIC.chords[0][i];
+      o.detune.value = det;
+      const g = ctx.createGain();
+      g.gain.value = 0.22;
+      o.connect(g); g.connect(filter); o.start();
+      pair.push(o);
+    }
+    voices.push(pair);
+  }
+
+  MUSIC.ctx = ctx;
+  MUSIC.master = master;
+  MUSIC.filter = filter;
+  MUSIC.voices = voices;
+  master.gain.setTargetAtTime(musicGain(), ctx.currentTime, 2.5);
+  scheduleChord();
+  scheduleBell();
+}
+
+function scheduleChord(){
+  if(!MUSIC.ctx) return;
+  clearTimeout(MUSIC.chordTimer);
+  MUSIC.chordTimer = setTimeout(()=>{
+    if(!MUSIC.ctx) return;
+    MUSIC.chord = (MUSIC.chord + 1) % MUSIC.chords.length;
+    const chord = MUSIC.chords[MUSIC.chord];
+    MUSIC.voices.forEach((pair, i)=>{
+      pair.forEach(o => o.frequency.setTargetAtTime(chord[i], MUSIC.ctx.currentTime, 4));
+    });
+    scheduleChord();
+  }, 14000);
+}
+
+function scheduleBell(){
+  if(!MUSIC.ctx) return;
+  clearTimeout(MUSIC.bellTimer);
+  MUSIC.bellTimer = setTimeout(()=>{
+    if(!MUSIC.ctx) return;
+    if(state.music){
+      const ctx = MUSIC.ctx;
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = MUSIC.bells[Math.floor(Math.random()*MUSIC.bells.length)];
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      o.connect(g); g.connect(MUSIC.filter);
+      const t = ctx.currentTime;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.16, t + .08);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 4.8);
+      o.start(t); o.stop(t + 5.2);
+    }
+    scheduleBell();
+  }, 5200 + Math.random()*5200);
+}
+
+function startMusic(){
+  if(!state.music) return;
+  if(!MUSIC.ctx) initMusic();
+  if(!MUSIC.ctx) return;
+  if(MUSIC.ctx.state === 'suspended') MUSIC.ctx.resume();
+  MUSIC.master.gain.setTargetAtTime(musicGain(), MUSIC.ctx.currentTime, 1.8);
+  if(!MUSIC.tipShown){
+    try{
+      if(sessionStorage.getItem('la.musicTip') === '1'){ MUSIC.tipShown = true; }
+      else{
+        sessionStorage.setItem('la.musicTip','1');
+        MUSIC.tipShown = true;
+        setTimeout(()=>toast('轻音乐已开启 · 菜单里可以关'), 1600);
+      }
+    }catch(e){
+      MUSIC.tipShown = true;
+      setTimeout(()=>toast('轻音乐已开启 · 菜单里可以关'), 1600);
+    }
+  }
+}
+
+function stopMusic(){
+  if(!MUSIC.ctx) return;
+  MUSIC.master.gain.setTargetAtTime(0, MUSIC.ctx.currentTime, .8);
+}
+
+function applyVolume(){
+  if(MUSIC.ctx && state.music){
+    MUSIC.master.gain.setTargetAtTime(musicGain(), MUSIC.ctx.currentTime, .3);
+  }
+}
+
+/* 浏览器要求用户手势后才能出声：第一次点击时启动 */
+document.addEventListener('pointerdown', function once(){
+  if(state.music) startMusic();
+}, {once:true});
+
 /* 鼠标轻微推动浮尘——只动前景，不动画稿，热点永远不跑偏 */
 stage.addEventListener('pointermove', e=>{
   if(isReduced()) return;
@@ -2241,6 +2415,13 @@ document.addEventListener('click', e=>{
       });
       break;
     }
+    case 'toggle-music': {
+      state.music = !state.music;
+      save();
+      el.setAttribute('aria-pressed', String(state.music));
+      if(state.music) startMusic(); else stopMusic();
+      break;
+    }
     case 'reset': {
       state.seeds = []; state.seen = []; state.hidden = []; state.finished = []; save();
       renderSeedCount(); closeCard();
@@ -2259,6 +2440,14 @@ document.addEventListener('click', e=>{
       break;
     }
   }
+});
+
+/* 音量滑块 */
+document.addEventListener('input', e=>{
+  if(!e.target.matches('.volume')) return;
+  state.volume = Number(e.target.value);
+  save();
+  applyVolume();
 });
 
 /* 种子行的键盘操作 */
@@ -2319,6 +2508,7 @@ function enterSite(){
   if(!introEl || introEl.classList.contains('hidden')) return;
   introEl.classList.add('hidden');
   try{ sessionStorage.setItem('la.introSeen','1'); }catch(e){}
+  if(state.music) startMusic();
   setTimeout(()=>{ introEl.style.display = 'none'; introEl.blur(); }, 1000);
 }
 try{
