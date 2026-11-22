@@ -1,0 +1,2210 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>人生支点 · 一棵可以随便点点的树</title>
+<meta name="description" content="一棵藏着有趣故事的树。随手点一下，遇见一件意想不到的事。">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%235f7d45' d='M26 6C14 6 7 12 7 21c0 2 .4 3.6 1 5l2-2c0-7 6-12 14-13-6 3-9 7-10 13l2 2c6-1 10-6 10-14V6z'/%3E%3C/svg%3E">
+<style>
+/* ============================================================
+   人生支点 Mini V1.0
+   一棵树 / 一次点击 / 一个值得记住的发现
+   ============================================================ */
+
+:root{
+  --paper:#fbf6e9;
+  --paper-2:#f6eedc;
+  --ink:#2b2418;
+  --ink-2:#6b6150;
+  --ink-3:#9a8a6c;
+  --line:rgba(120,95,55,.2);
+  --k:#b07c22;   /* 奇妙世界 */
+  --s:#8a5a2b;   /* 不同人生 */
+  --a:#5f7d45;   /* 微小行动 */
+  --garden:#a4556a;
+  --serif:"Songti SC","Source Han Serif SC","Noto Serif SC","STSong","SimSun",Georgia,serif;
+  --sans:"PingFang SC","Hiragino Sans GB","Noto Sans SC",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  --ease:cubic-bezier(.2,.82,.26,1);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;overflow:hidden;background:#0b100e;color:var(--ink);
+  font-family:var(--sans);-webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit}
+
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+
+/* ---------- 世界与舞台 ---------- */
+.world{position:fixed;inset:0;display:grid;place-items:center;overflow:hidden}
+
+/* 宽屏时向左右延展：把同一张图放大模糊，填补两侧，而不是拉伸原图 */
+.bg-blur{
+  position:fixed;z-index:0;
+  background:url("assets/tree.jpg") center center / 100% 100% no-repeat;
+  filter:blur(58px) saturate(1.12) brightness(1.02);
+  transform:scale(1.01);
+}
+
+.stage{
+  position:relative;z-index:2;
+  isolation:isolate;
+  overflow:hidden;
+  box-shadow:0 50px 140px -60px rgba(0,0,0,.85);
+  animation:stageBreath 38s ease-in-out infinite alternate;
+}
+/* 镜头极慢地呼吸一下，几乎没有位移感，但画面不会死 */
+@keyframes stageBreath{
+  from{transform:scale(1)}
+  to{transform:scale(1.006)}
+}
+
+.art{
+  display:block;width:100%;height:100%;
+  object-fit:cover;object-position:center;
+  -webkit-user-drag:none;user-select:none;
+  opacity:0;transition:opacity 1s ease;
+}
+body.ready .art{opacity:1}
+
+/* 只在该方向真的有留白时才羽化边缘，避免 16:9 屏上白白吃掉画面 */
+.world[data-bleed="x"] .art:not(.canopy){
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 3.2%,#000 96.8%,transparent 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 3.2%,#000 96.8%,transparent 100%);
+}
+.world[data-bleed="y"] .art:not(.canopy){
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 3.2%,#000 96.8%,transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0,#000 3.2%,#000 96.8%,transparent 100%);
+}
+
+/* 树冠呼吸：同一张图再叠一层，只在树冠范围里露出，让它轻轻动 */
+.canopy{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  transform-origin:66% 67%;
+  -webkit-mask-image:radial-gradient(40% 34% at 63% 23%, #000 42%, rgba(0,0,0,.72) 62%, transparent 86%);
+  mask-image:radial-gradient(40% 34% at 63% 23%, #000 42%, rgba(0,0,0,.72) 62%, transparent 86%);
+  animation:canopySway 16s ease-in-out infinite;
+  will-change:transform;
+}
+@keyframes canopySway{
+  0%,100%{transform:rotate(0deg) scale(1)}
+  26%{transform:rotate(.18deg) scale(1.006)}
+  54%{transform:rotate(-.13deg) scale(1.004)}
+  78%{transform:rotate(.07deg) scale(1.005)}
+}
+
+/* 阳光缓慢变化：只叠一层极淡的暖光，不改动原画 */
+.sun{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(46% 38% at 38% 18%, rgba(255,238,196,.34), rgba(255,238,196,0) 70%);
+  mix-blend-mode:screen;opacity:.55;
+  animation:sunDrift 36s ease-in-out infinite alternate;
+}
+@keyframes sunDrift{
+  from{transform:translate3d(-1.4%,0,0) scale(1)}
+  to{transform:translate3d(1.8%,1.2%,0) scale(1.05)}
+}
+
+/* 云海上的雾：两层不同速度地漂，给画面一点纵深 */
+.mist{
+  position:absolute;inset:-6% -12%;z-index:2;pointer-events:none;
+  filter:blur(22px);
+  opacity:.7;
+  translate:var(--mx2,0px) var(--my2,0px);
+  transition:translate 1.6s cubic-bezier(.2,.7,.2,1);
+}
+.mist-a{
+  background:
+    radial-gradient(46% 18% at 30% 84%, rgba(255,252,246,.40), transparent 72%),
+    radial-gradient(40% 15% at 74% 90%, rgba(255,247,228,.34), transparent 74%);
+  animation:mistDrift 34s ease-in-out infinite alternate;
+}
+.mist-b{
+  background:
+    radial-gradient(36% 13% at 56% 76%, rgba(255,255,255,.24), transparent 74%),
+    radial-gradient(28% 11% at 14% 68%, rgba(255,250,238,.20), transparent 78%);
+  opacity:.52;
+  animation:mistDrift 48s ease-in-out infinite alternate-reverse;
+}
+@keyframes mistDrift{
+  from{transform:translate3d(-3.4%,0,0)}
+  to{transform:translate3d(3.4%,0,0)}
+}
+
+/* 浮尘 */
+.motes{position:absolute;inset:0;z-index:2;pointer-events:none;
+  transform:translate3d(var(--mx,0px),var(--my,0px),0);
+  transition:transform 1.2s cubic-bezier(.2,.7,.2,1);
+}
+.mote{
+  position:absolute;border-radius:50%;background:rgba(255,244,206,.85);
+  box-shadow:0 0 8px 1px rgba(255,232,168,.45);
+  opacity:0;animation:drift var(--dur) linear infinite;animation-delay:var(--delay);
+}
+@keyframes drift{
+  0%{transform:translate3d(0,0,0);opacity:0}
+  20%{opacity:var(--o,.55)}
+  80%{opacity:var(--o,.55)}
+  100%{transform:translate3d(var(--dx,8px),var(--dy,-56px),0);opacity:0}
+}
+
+/* 起风：一道光扫过 */
+.gust{
+  position:absolute;inset:-8%;z-index:3;pointer-events:none;opacity:0;
+  background:linear-gradient(104deg,transparent 36%,rgba(255,248,224,.34) 47%,rgba(255,251,236,.52) 52%,rgba(255,248,224,.26) 58%,transparent 70%);
+  filter:blur(8px);
+}
+.stage.gusting .gust{animation:gust 1.05s cubic-bezier(.3,.6,.3,1)}
+@keyframes gust{
+  0%{opacity:0;transform:translateX(-36%)}
+  38%{opacity:.85}
+  100%{opacity:0;transform:translateX(36%)}
+}
+
+/* 落下的叶子 */
+.leaf-fall{
+  position:absolute;left:50%;top:8%;z-index:8;pointer-events:none;
+  width:34px;height:34px;opacity:0;
+  animation:leafFall 1.6s cubic-bezier(.35,.1,.55,1) forwards;
+}
+@keyframes leafFall{
+  0%{opacity:0;transform:translate3d(0,0,0) rotate(0deg) scale(.9)}
+  12%{opacity:.95}
+  60%{transform:translate3d(var(--sway,-40px),34vh,0) rotate(160deg) scale(1)}
+  100%{opacity:0;transform:translate3d(var(--sway2,30px),58vh,0) rotate(320deg) scale(.96)}
+}
+
+/* 平时偶尔飘下来的一片叶子 */
+.leaf-fall.ambient{
+  width:24px;height:24px;top:-6%;
+  animation:leafDrift 9s linear forwards;
+}
+@keyframes leafDrift{
+  0%{opacity:0;transform:translate3d(0,-6vh,0) rotate(0deg)}
+  10%{opacity:.55}
+  50%{transform:translate3d(var(--sway),45vh,0) rotate(210deg)}
+  90%{opacity:.4}
+  100%{opacity:0;transform:translate3d(var(--sway2),108vh,0) rotate(430deg)}
+}
+
+/* ---------- 叠在画稿上的真实按钮 ---------- */
+.hit{
+  position:absolute;left:calc(var(--x) * 1%);top:calc(var(--y) * 1%);
+  width:calc(var(--w) * 1%);height:calc(var(--h) * 1%);
+  transform:translate(-50%,-50%);
+  padding:0;border:0;background:transparent;border-radius:999px;
+  cursor:pointer;z-index:9;
+  transition:background .25s ease,box-shadow .25s ease;
+}
+.hit:focus-visible{
+  outline:2px solid rgba(255,248,226,.95);outline-offset:3px;
+  background:rgba(255,246,224,.08);
+}
+.hit.nav:hover{background:rgba(255,248,226,.12)}
+.hit.cta::after{
+  content:"";position:absolute;inset:-3px;border-radius:999px;
+  background:radial-gradient(circle at 50% 50%,rgba(255,244,204,.45),transparent 70%);
+  opacity:0;transition:opacity .3s ease;pointer-events:none;
+}
+.hit.cta:hover::after,.hit.cta:focus-visible::after{opacity:1}
+
+.seed-count{
+  position:absolute;left:94.5%;top:1.9%;z-index:10;
+  min-width:1.6em;height:1.6em;padding:0 .42em;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:clamp(9px,.72vw,12px);font-weight:600;line-height:1;
+  color:#4a3a18;background:linear-gradient(180deg,#ffe9ad,#f5cf72);
+  border-radius:999px;border:1px solid rgba(255,255,255,.78);
+  box-shadow:0 2px 8px rgba(120,80,10,.32);
+  transform:translateY(-50%);pointer-events:none;
+  opacity:0;transition:opacity .3s ease;
+}
+.seed-count.on{opacity:1}
+
+/* ---------- 长椅上的小鸟 ---------- */
+.bird{
+  position:absolute;left:63.2%;top:64.6%;z-index:6;
+  width:3.35%;transform:translate(-50%,-50%);
+  filter:drop-shadow(0 3px 4px rgba(40,24,6,.35));
+  pointer-events:none;opacity:.94;
+  animation:birdBreathe 7s ease-in-out infinite;
+}
+@keyframes birdBreathe{
+  0%,100%{transform:translate(-50%,-50%) rotate(0deg)}
+  42%{transform:translate(-50%,-50.6%) rotate(-1.2deg)}
+  45%{transform:translate(-50%,-53.2%) rotate(-2.6deg)}
+  48%{transform:translate(-50%,-50%) rotate(.7deg)}
+  70%{transform:translate(-50%,-49.8%) rotate(.8deg)}
+}
+
+
+/* ---------- 热点 ---------- */
+.hotspots{position:absolute;inset:0;z-index:5}
+.hotspot{
+  position:absolute;width:5.5%;aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  padding:0;border:0;background:none;cursor:pointer;border-radius:50%;
+  -webkit-tap-highlight-color:transparent;
+}
+.hs-ring{
+  position:absolute;inset:0;border-radius:50%;
+  border:1px solid rgba(255,248,226,0);
+  background:radial-gradient(circle,rgba(255,244,214,.08),transparent 68%);
+  transition:border-color .32s ease,box-shadow .4s ease,transform .4s var(--ease);
+}
+.hotspot[data-ring="true"] .hs-ring{
+  border-color:rgba(255,248,226,.16);
+  box-shadow:0 0 16px rgba(255,238,190,.08);
+}
+.hotspot:hover .hs-ring,.hotspot:focus-visible .hs-ring{
+  border-color:rgba(255,250,232,.9);
+  background:radial-gradient(circle,rgba(255,244,214,.14),transparent 70%);
+  box-shadow:0 0 30px rgba(255,228,160,.45),inset 0 0 26px rgba(255,238,190,.2);
+  transform:scale(1.05);
+}
+.hotspot:focus-visible{outline:none}
+.hotspot:focus-visible .hs-ring{border-width:2px}
+
+/* 果实偶尔闪一下 */
+.hs-spark{
+  position:absolute;inset:-12%;border-radius:50%;pointer-events:none;
+  border:1px solid rgba(255,238,190,.5);opacity:0;
+  animation:spark 9s ease-out infinite;animation-delay:var(--sd,0s);
+}
+@keyframes spark{
+  0%,86%{opacity:0;transform:scale(.82)}
+  90%{opacity:.55}
+  100%{opacity:0;transform:scale(1.22)}
+}
+
+.hs-tip{
+  position:absolute;left:50%;top:calc(100% + 9px);
+  transform:translate(-50%,-6px);
+  width:max-content;max-width:214px;
+  padding:10px 12px 9px;border-radius:10px;
+  background:rgba(37,30,19,.8);
+  border:1px solid rgba(255,242,204,.22);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 14px 34px -12px rgba(0,0,0,.55);
+  color:#fff8e6;text-align:left;
+  opacity:0;pointer-events:none;
+  transition:opacity .22s ease,transform .28s var(--ease);
+}
+.hs-tip::before{
+  content:"";position:absolute;left:50%;bottom:100%;margin-left:-5px;
+  border:5px solid transparent;border-bottom-color:rgba(37,30,19,.8);
+}
+.hs-tip b{
+  display:block;margin-bottom:3px;
+  font-family:var(--serif);font-weight:600;font-size:12.5px;
+  letter-spacing:.06em;line-height:1.4;
+}
+.hs-tip i{
+  display:block;font-style:normal;
+  font-size:10.5px;line-height:1.65;letter-spacing:.02em;
+  color:rgba(255,244,220,.66);
+}
+/* 靠下的热点，提示翻到上方，免得被画面底边裁掉 */
+.hotspot[data-pos="up"] .hs-tip{
+  top:auto;bottom:calc(100% + 9px);
+  transform:translate(-50%,6px);
+}
+.hotspot[data-pos="up"] .hs-tip::before{
+  bottom:auto;top:100%;
+  border-bottom-color:transparent;border-top-color:rgba(37,30,19,.8);
+}
+.hotspot:hover .hs-tip,
+.hotspot:focus-visible .hs-tip{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- 第一次来的提示 ---------- */
+.hint{
+  position:absolute;left:50%;bottom:8%;z-index:11;
+  transform:translate(-50%,8px);
+  padding:9px 16px;border-radius:999px;white-space:nowrap;
+  font-size:clamp(10.5px,.82vw,13px);letter-spacing:.06em;
+  color:#fff6e2;background:rgba(38,31,20,.62);
+  border:1px solid rgba(255,240,200,.2);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  opacity:0;pointer-events:none;transition:opacity .6s ease,transform .6s var(--ease);
+}
+.hint.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- 内容页：停在屏幕正中，约占 2/3 ---------- */
+.scrim{
+  position:fixed;inset:0;z-index:35;
+  background:rgba(9,13,10,.36);
+  opacity:0;pointer-events:none;
+  transition:opacity .35s ease;
+}
+.scrim.on{opacity:1;pointer-events:auto}
+
+.card{
+  position:fixed;z-index:40;left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  border:1px solid var(--line);border-radius:5px;
+  background:linear-gradient(180deg,#fffdf7 0%,#f9f2e2 100%);
+  box-shadow:
+    0 60px 130px -50px rgba(30,18,2,.7),
+    0 1px 0 rgba(255,255,255,.9) inset;
+  animation:cardIn .42s var(--ease);
+  overflow:hidden;
+  scrollbar-width:thin;scrollbar-color:rgba(140,110,60,.25) transparent;
+}
+::-webkit-scrollbar{width:7px;height:7px}
+::-webkit-scrollbar-thumb{background:rgba(140,110,60,.22);border-radius:99px}
+
+@keyframes cardIn{
+  from{opacity:0;transform:translate(-50%,-50%) scale(.965)}
+  to{opacity:1;transform:translate(-50%,-50%) scale(1)}
+}
+
+.card::before{
+  content:"";position:absolute;left:0;top:0;right:0;height:2px;z-index:2;
+  background:linear-gradient(90deg,var(--accent,#b07c22),rgba(176,124,34,0) 70%);
+}
+
+/* 内容页：左侧播放器，右侧文字 */
+.card.is-page{
+  width:min(78vw,1180px);
+  height:min(80vh,740px);
+  min-height:540px;
+  display:flex;flex-direction:column;
+}
+
+.video-grid{
+  flex:1;min-height:0;
+  display:grid;
+  grid-template-columns:minmax(360px,54%) minmax(340px,46%);
+  /* 关键：把行高限制在容器内，左右两栏的 overflow 才会真的生效 */
+  grid-template-rows:minmax(0,1fr);
+}
+
+.video-left{
+  display:flex;flex-direction:column;
+  padding:42px 26px 24px 44px;
+  border-right:1px solid rgba(120,95,55,.12);
+  overflow-y:auto;
+  scrollbar-gutter:stable;
+}
+.video-right{
+  padding:42px 44px 26px 26px;
+  overflow-y:auto;
+  scrollbar-gutter:stable;
+}
+/* 视频页的标题稍小一点，给下面的结构化内容留出空间 */
+.card.is-video .card-title{
+  font-size:clamp(24px,2.1vw,31px);line-height:1.42;margin-bottom:18px;
+}
+.card.is-video .card-body{margin-bottom:22px}
+.card.is-video .blk{margin-top:18px}
+.card.is-video .tl{margin-bottom:13px}
+.card.is-video .qt{margin-top:13px}
+
+/* 没有视频的条目：单栏阅读页，别留一个空左栏 */
+.card.is-page.no-video{width:min(66vw,880px)}
+.card.is-page.no-video .video-grid{
+  display:block;overflow-y:auto;min-height:0;
+  scrollbar-gutter:stable;
+}
+.card.is-page.no-video .video-left{display:none}
+.card.is-page.no-video .video-right{
+  padding:46px 56px 28px;max-width:780px;margin:0 auto;
+  overflow:visible;
+}
+
+/* 播放器 */
+.player{
+  position:relative;width:100%;aspect-ratio:16/9;
+  background:#141210;border-radius:8px;overflow:hidden;
+  box-shadow:0 16px 36px -22px rgba(0,0,0,.65);
+}
+.player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
+/* 先给一张封面，点了才加载播放器，避免平台自动播放 */
+.player-cover{
+  position:absolute;inset:0;width:100%;height:100%;
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;
+  padding:22px 24px;border:0;cursor:pointer;text-align:left;
+  background:
+    radial-gradient(55% 55% at 78% 16%, rgba(214,166,96,.20), transparent 70%),
+    linear-gradient(155deg,#2b2419 0%,#191510 62%,#121010 100%);
+  color:#f7edd6;
+}
+.player-cover:hover{background:
+    radial-gradient(55% 55% at 78% 16%, rgba(224,178,108,.26), transparent 70%),
+    linear-gradient(155deg,#332b1e 0%,#1c1712 62%,#121010 100%)}
+.play-badge{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:62px;height:62px;border-radius:50%;
+  display:grid;place-items:center;
+  background:rgba(255,246,224,.1);
+  border:1px solid rgba(255,240,200,.38);
+  transition:transform .25s var(--ease),background .25s;
+}
+.player-cover:hover .play-badge{transform:translate(-50%,-50%) scale(1.07);background:rgba(255,246,224,.19)}
+.play-badge svg{width:20px;height:20px;margin-left:3px;fill:#f9efd8}
+.cover-title{
+  position:relative;z-index:1;max-width:88%;
+  font-family:var(--serif);font-size:14.5px;line-height:1.55;
+}
+.cover-meta{
+  position:relative;z-index:1;margin-top:6px;
+  font-size:10px;letter-spacing:.16em;color:rgba(246,236,214,.58);
+}
+.player-meta{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-top:10px;font-size:11px;letter-spacing:.04em;color:var(--ink-3);
+}
+.player-meta a{color:#8a6428;text-decoration:none;border-bottom:1px dotted rgba(138,100,40,.4)}
+.player-meta a:hover{color:#6d4a14}
+.why{
+  margin-top:18px;padding:13px 15px;
+  border-radius:10px;border:1px dashed rgba(168,118,42,.32);
+  background:rgba(255,252,242,.66);
+}
+.why span{display:block;margin-bottom:5px;font-size:10px;letter-spacing:.2em;color:var(--accent,#b07c22)}
+.why p{margin:0;font-size:13px;line-height:1.8;color:#3b3223}
+.player-note{margin:10px 0 0;font-size:10.5px;line-height:1.6;color:var(--ink-3)}
+
+/* 右侧的结构化内容 */
+.blk{margin-top:22px}
+.blk h3{
+  margin:0 0 8px;font-size:10.5px;font-weight:500;
+  letter-spacing:.2em;color:var(--ink-3);
+}
+.blk p{margin:0;font-size:14px;line-height:1.9;color:#3b3223}
+
+.steps{list-style:none;counter-reset:s;margin:0;padding:0}
+.steps li{
+  counter-increment:s;position:relative;
+  padding-left:30px;margin-bottom:11px;
+  font-size:14px;line-height:1.85;color:#3b3223;
+}
+.steps li::before{
+  content:counter(s);position:absolute;left:0;top:2px;
+  width:19px;height:19px;border-radius:50%;
+  display:grid;place-items:center;
+  font-size:10.5px;color:var(--accent,#b07c22);
+  background:color-mix(in srgb, var(--accent,#b07c22) 13%, transparent);
+}
+
+.timeline{border-left:1px solid rgba(120,95,55,.16);padding-left:20px;margin-top:22px}
+.tl{position:relative;margin-bottom:16px}
+.tl::before{
+  content:"";position:absolute;left:-24px;top:6px;
+  width:7px;height:7px;border-radius:50%;background:var(--accent,#b07c22);
+}
+.tl span{display:block;margin-bottom:3px;font-size:10.5px;letter-spacing:.12em;color:var(--ink-3)}
+.tl p{margin:0;font-size:14px;line-height:1.9;color:#3b3223}
+
+.qt{margin-top:16px;padding-left:14px;border-left:2px solid var(--accent,#b07c22)}
+.qt span{display:block;margin-bottom:4px;font-size:10px;letter-spacing:.2em;color:var(--ink-3)}
+.qt p{margin:0;font-family:var(--serif);font-size:14.5px;line-height:1.95;color:#3b3223}
+
+.kw{
+  margin-top:11px;padding:12px 14px;border-radius:10px;
+  border:1px solid rgba(120,95,55,.14);background:rgba(255,252,242,.7);
+}
+.kw span{display:block;margin-bottom:4px;font-size:10px;letter-spacing:.18em;color:var(--accent,#b07c22)}
+.kw p{margin:0;font-size:13.5px;line-height:1.8;color:#3b3223}
+
+.res a{
+  display:inline-block;font-size:13px;line-height:1.8;color:#8a6428;
+  text-decoration:none;border-bottom:1px dotted rgba(138,100,40,.42);
+}
+.res a:hover{color:#6d4a14}
+
+/* 人物 / 访谈 / 英文视频的补充块 */
+.note{
+  margin-top:20px;padding-top:16px;
+  border-top:1px solid rgba(120,95,55,.13);
+}
+.note h3{margin:0 0 6px;font-size:10.5px;font-weight:500;letter-spacing:.2em;color:var(--ink-3)}
+.note p{margin:0;font-size:14px;line-height:1.9;color:#3b3223}
+.note.q{
+  margin-top:22px;padding:14px 16px;border-top:0;border-radius:10px;
+  background:color-mix(in srgb, var(--accent,#b07c22) 7%, transparent);
+  border-left:2px solid var(--accent,#b07c22);
+}
+.note.q h3{color:var(--accent,#b07c22)}
+
+.points{margin-top:4px}
+.pt{display:flex;gap:11px;margin-bottom:12px}
+.pt i{
+  flex:none;width:20px;height:20px;border-radius:50%;
+  display:grid;place-items:center;font-style:normal;font-size:10.5px;
+  color:var(--accent,#b07c22);
+  background:color-mix(in srgb, var(--accent,#b07c22) 13%, transparent);
+}
+.pt p{margin:0;font-size:14px;line-height:1.85;color:#3b3223}
+
+.takeaways{list-style:none;margin:0;padding:0}
+.takeaways li{
+  position:relative;padding-left:16px;margin-bottom:8px;
+  font-size:14px;line-height:1.85;color:#3b3223;
+}
+.takeaways li::before{
+  content:"";position:absolute;left:0;top:.62em;
+  width:5px;height:5px;border-radius:50%;background:var(--accent,#b07c22);
+}
+
+.exprs{display:flex;flex-direction:column;gap:8px}
+.expr{
+  padding:10px 12px;border-radius:8px;
+  background:rgba(255,252,242,.72);
+  border:1px solid rgba(120,95,55,.14);
+}
+.expr b{
+  display:block;font-family:var(--serif);font-weight:600;
+  font-size:14px;line-height:1.5;color:#2b2417;
+}
+.expr span{display:block;margin-top:2px;font-size:12px;line-height:1.6;color:var(--ink-3)}
+
+.page-bar{
+  flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  flex-wrap:wrap;
+  padding:14px 50px;
+  border-top:1px solid rgba(120,95,55,.13);
+  background:linear-gradient(180deg,rgba(250,244,232,.3),rgba(246,238,222,.9));
+}
+.page-bar .note{font-size:11px;color:var(--ink-3);letter-spacing:.02em}
+
+.card-close{
+  position:absolute;right:14px;top:13px;z-index:3;
+  width:32px;height:32px;padding:0;border:0;border-radius:50%;
+  background:transparent;color:#a2927a;font-size:18px;line-height:1;cursor:pointer;
+  transition:background .2s,color .2s;
+}
+.card-close:hover{background:rgba(120,95,55,.08);color:#5a4b34}
+
+/* 统一焦点样式，别让浏览器的蓝环破坏画面 */
+.card-close:focus-visible,
+.player-cover:focus-visible,
+.seed-btn:focus-visible,
+.again-btn:focus-visible,
+.card-src:focus-visible,
+.seed-row:focus-visible,
+.seed-row .x:focus-visible,
+.empty button:focus-visible,
+.mini-btn:focus-visible,
+.ghost-btn:focus-visible,
+.set-row:focus-visible{
+  outline:2px solid rgba(168,118,42,.55);
+  outline-offset:2px;
+}
+.seed-row:focus-visible{outline-offset:-2px}
+
+.card-kicker{
+  display:flex;align-items:center;gap:7px;margin:0 0 12px;
+  font-size:10.5px;letter-spacing:.22em;color:var(--ink-3);
+}
+.card-kicker i{
+  width:6px;height:6px;border-radius:50%;background:var(--accent,#b07c22);
+}
+
+/* 类型下面的一行小信息：身份、嘉宾、平台 */
+.card-meta{
+  margin:-4px 0 14px;
+  font-size:11px;line-height:1.6;letter-spacing:.04em;color:var(--ink-3);
+}
+
+.card-title{
+  margin:0 0 22px;font-family:var(--serif);font-weight:600;
+  font-size:clamp(26px,2.4vw,36px);line-height:1.42;letter-spacing:.01em;color:#241d12;
+  text-wrap:pretty;
+}
+.card-hook{
+  margin:0;padding-left:15px;border-left:2px solid var(--accent,#b07c22);
+  font-family:var(--serif);font-size:clamp(15.5px,1.28vw,18px);line-height:1.95;color:#6a5f4a;
+  text-wrap:pretty;
+}
+.card-body{
+  margin:0 0 30px;font-size:clamp(15px,1.12vw,16.5px);line-height:2.1;
+  color:#3b3223;letter-spacing:.012em;text-wrap:pretty;
+}
+
+.card-try{
+  margin:0;padding:18px 20px 17px;
+  border:1px dashed rgba(168,118,42,.38);border-radius:10px;
+  background:rgba(255,252,242,.72);
+}
+.card-try span{
+  display:block;margin-bottom:8px;
+  font-size:10px;letter-spacing:.22em;color:var(--accent,#b07c22);
+}
+.card-try p{margin:0;font-size:clamp(14px,1.05vw,15.5px);line-height:1.95;color:#3b3223;text-wrap:pretty}
+
+.seed-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:11px 20px;border-radius:999px;cursor:pointer;
+  border:1px solid rgba(168,118,42,.45);background:#fffdf7;
+  color:#8a5a1e;font-size:13.5px;letter-spacing:.05em;
+  transition:all .22s ease;
+}
+.seed-btn svg{width:15px;height:15px}
+.seed-btn:hover{background:#fdf6e4;box-shadow:0 8px 20px -12px rgba(140,100,30,.55)}
+.seed-btn.is-seeded{background:var(--a);border-color:var(--a);color:#f7f4e9}
+
+.again-btn{
+  padding:10px 2px;border:0;background:none;cursor:pointer;
+  font-size:12.5px;letter-spacing:.05em;color:var(--ink-3);
+  transition:color .2s;
+}
+.again-btn:hover{color:var(--accent,#b07c22)}
+
+/* 底栏右侧的动作组：不感兴趣 / 已看完 / 再发现一个 */
+.bar-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.ghost-btn{
+  padding:9px 2px;border:0;background:none;cursor:pointer;
+  font-size:12px;letter-spacing:.05em;color:var(--ink-3);
+  transition:color .2s;
+}
+.ghost-btn:hover{color:var(--ink-2)}
+.ghost-btn.accent{color:var(--accent,#b07c22)}
+.ghost-btn.accent:hover{text-decoration:underline;text-underline-offset:3px}
+
+.card-src{
+  display:inline-block;margin-top:14px;
+  font-size:11px;letter-spacing:.02em;color:#a2917a;text-decoration:none;
+  border-bottom:1px dotted rgba(140,120,90,.4);
+}
+.card-src:hover{color:#7d6a50}
+
+/* 花园 / 设置：同一种居中纸页，但矮一些 */
+.card.is-sheet{
+  width:min(66vw,780px);
+  max-height:74vh;
+  display:flex;flex-direction:column;
+}
+.card.is-sheet.narrow{width:min(420px,92vw)}
+.sheet-scroll{
+  padding:46px 50px 26px;
+  overflow-y:auto;flex:1;
+}
+.card.is-sheet .page-bar{padding:13px 50px}
+.card.is-sheet .card-title{font-size:clamp(23px,2vw,30px)}
+.card.is-sheet.narrow .card-title{font-size:22px;margin-bottom:14px}
+
+/* ---------- 种子花园 ---------- */
+.garden-sub{margin:-6px 0 18px;font-size:12.5px;line-height:1.8;color:var(--ink-3)}
+.seed-list{display:flex;flex-direction:column;gap:2px;margin:0 0 12px}
+.seed-row{
+  display:flex;align-items:center;gap:11px;width:100%;
+  padding:11px 6px;border:0;border-bottom:1px solid rgba(120,95,55,.1);
+  background:none;cursor:pointer;text-align:left;
+  transition:background .18s;
+}
+.seed-row:hover{background:rgba(168,118,42,.06)}
+.seed-row i{
+  flex:none;width:7px;height:7px;border-radius:50%;background:var(--accent,#b07c22);
+}
+.seed-row b{
+  font-family:var(--serif);font-weight:600;font-size:14.5px;
+  line-height:1.5;color:#2b2417;flex:1;
+}
+.seed-row small{font-size:10.5px;letter-spacing:.1em;color:var(--ink-3);flex:none}
+.seed-row .x{
+  flex:none;width:22px;height:22px;border-radius:50%;
+  border:0;background:transparent;color:#b3a48d;cursor:pointer;font-size:13px;line-height:1;
+}
+.seed-row .x:hover{background:rgba(160,70,50,.1);color:#a0503c}
+
+.empty{padding:26px 4px 20px;text-align:center}
+.empty svg{width:52px;height:52px;opacity:.55;margin-bottom:14px}
+.empty p{margin:0 0 6px;font-family:var(--serif);font-size:15px;color:#5b5140;line-height:1.7}
+.empty small{display:block;font-size:12px;line-height:1.8;color:var(--ink-3);margin-bottom:18px}
+.empty button{
+  padding:9px 18px;border-radius:999px;cursor:pointer;
+  border:1px solid rgba(168,118,42,.4);background:#fffdf7;
+  color:#8a5a1e;font-size:12.5px;letter-spacing:.04em;
+}
+.empty button:hover{background:#fdf6e4}
+
+.mini-btn{
+  padding:6px 10px;border-radius:999px;border:1px solid rgba(120,95,55,.18);
+  background:transparent;color:var(--ink-2);font-size:11.5px;cursor:pointer;
+  transition:all .18s;
+}
+.mini-btn:hover{background:#fff;border-color:rgba(120,95,55,.35)}
+.mini-btn[aria-pressed="true"]{background:var(--a);border-color:var(--a);color:#f7f4e9}
+
+/* ---------- 设置 ---------- */
+.set-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  width:100%;padding:11px 4px;border:0;background:none;cursor:pointer;
+  text-align:left;font-size:13px;color:#4a4030;
+  border-bottom:1px solid rgba(120,95,55,.1);
+}
+.set-row small{display:block;margin-top:2px;font-size:11px;color:var(--ink-3);line-height:1.6}
+.switch{
+  flex:none;width:36px;height:21px;border-radius:999px;
+  background:rgba(120,95,55,.2);position:relative;transition:background .2s;
+}
+.switch::after{
+  content:"";position:absolute;left:3px;top:3px;width:15px;height:15px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(60,40,10,.3);transition:transform .22s var(--ease);
+}
+.set-row[aria-pressed="true"] .switch{background:var(--a)}
+.set-row[aria-pressed="true"] .switch::after{transform:translateX(15px)}
+
+/* ---------- Toast ---------- */
+.toast{
+  position:fixed;left:50%;bottom:28px;z-index:60;
+  transform:translate(-50%,14px);opacity:0;pointer-events:none;
+  padding:10px 18px;border-radius:999px;
+  background:rgba(32,26,16,.9);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,225,170,.22);
+  color:#f7ecd6;font-size:12.5px;letter-spacing:.03em;
+  transition:opacity .28s ease,transform .38s var(--ease);
+  max-width:calc(100vw - 40px);text-align:center;
+}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- 减少动态 ---------- */
+html.reduce-motion .mote,
+html.reduce-motion .hs-spark,
+html.reduce-motion .bird,
+html.reduce-motion .canopy,
+html.reduce-motion .mist,
+html.reduce-motion .stage{animation:none}
+html.reduce-motion .mote{opacity:0}
+html.reduce-motion .sun{animation:none}
+html.reduce-motion .stage.gusting .gust{animation:none;opacity:0}
+html.reduce-motion .leaf-fall,
+html.reduce-motion .card{animation:none}
+html.reduce-motion .leaf-fall.ambient{display:none}
+html.reduce-motion .card{opacity:1}
+@media (prefers-reduced-motion: reduce){
+  .mote,.hs-spark,.bird,.sun,.canopy,.mist,.stage{animation:none}
+  .mote{opacity:0}
+  .stage.gusting .gust{animation:none}
+  .leaf-fall,.leaf-fall.ambient{display:none}
+  .card{animation:none}
+}
+
+/* ---------- 窄屏：播放器在上，文字在下 ---------- */
+@media (max-width:980px){
+  .card.is-page{
+    width:92vw;height:auto;max-height:92vh;min-height:0;
+  }
+  .card.is-page.no-video{width:92vw}
+  .card.is-page.no-video .video-right{padding:24px 26px 26px;max-width:none}
+  .card.is-page .video-grid{
+    display:block;overflow-y:auto;
+  }
+  .video-left{
+    padding:40px 24px 20px;
+    border-right:0;border-bottom:1px solid rgba(120,95,55,.12);
+    overflow:visible;
+  }
+  .player{max-width:460px}
+  .video-right{padding:22px 24px 26px;overflow:visible}
+  .page-bar{padding:14px 24px}
+  .card.is-sheet{width:92vw;max-height:84vh}
+  .sheet-scroll{padding:42px 26px 22px}
+  .card.is-sheet .page-bar{padding:12px 26px}
+}
+@media (max-width:760px){
+  .card{animation:none}
+  .card-title{font-size:25px}
+  .hint{bottom:3%}
+}
+</style>
+</head>
+<body>
+
+<h1 class="sr-only">人生支点</h1>
+<p class="sr-only">一棵藏着有趣故事的树。随手点一下果实、小鸟或树洞，遇见一件意想不到的事。</p>
+
+<div class="world" id="world">
+  <div class="bg-blur" aria-hidden="true"></div>
+
+  <div class="stage" id="stage">
+    <img class="art" id="art" src="assets/tree.jpg"
+         alt="一棵巨大的守护之树长在漂浮的岛上，枝头挂着果实，树下有一条石凳，树根处有一个发光的树洞。">
+    <!-- 同一张图再叠一层，只在树冠范围里露出，让它轻轻呼吸 -->
+    <img class="art canopy" src="assets/tree.jpg" alt="" aria-hidden="true">
+
+    <div class="mist mist-a" aria-hidden="true"></div>
+    <div class="mist mist-b" aria-hidden="true"></div>
+    <div class="sun" aria-hidden="true"></div>
+    <div class="motes" id="motes" aria-hidden="true"></div>
+    <div class="gust" aria-hidden="true"></div>
+
+    <!-- 长椅上的小鸟：原画里没有，补一笔安静的生气 -->
+    <svg class="bird" viewBox="0 0 64 64" aria-hidden="true">
+      <defs>
+        <linearGradient id="birdBody" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#93694a"/>
+          <stop offset="1" stop-color="#5a3f28"/>
+        </linearGradient>
+      </defs>
+      <path d="M21 43c-8 1-13 6-16 12 8 1 14-1 18-7z" fill="#573d27"/>
+      <ellipse cx="31" cy="38" rx="14.5" ry="9.5" fill="url(#birdBody)"/>
+      <circle cx="42.5" cy="28.5" r="7.6" fill="url(#birdBody)"/>
+      <path d="M49.5 27.5 58 30.5 49.5 33.5z" fill="#c9a24a"/>
+      <circle cx="45" cy="27" r="1.35" fill="#1e170f"/>
+      <path d="M27 47.5v4M33 47.5v4" stroke="#4a321d" stroke-width="1.7" stroke-linecap="round"/>
+      <path d="M23 41c4.5 2.6 9 3.4 13.5 2.4" stroke="#4a321d" stroke-width="1.1" fill="none" opacity=".45"/>
+    </svg>
+
+    <!-- 叠在画稿导航上的真实按钮 -->
+    <button class="hit nav" style="--x:73.4;--y:3.9;--w:7.6;--h:4.8" data-act="home" aria-label="回到树"></button>
+    <button class="hit nav" style="--x:82.1;--y:3.9;--w:7.4;--h:4.8" data-act="wind" aria-label="随机探索"></button>
+    <button class="hit nav" style="--x:90.3;--y:3.9;--w:8.8;--h:4.8" data-act="garden" aria-label="我的种子"></button>
+    <button class="hit nav" style="--x:97.5;--y:4.0;--w:4.4;--h:4.8" data-act="settings" aria-label="设置"></button>
+    <button class="hit cta" style="--x:13.8;--y:55.9;--w:17.4;--h:7.2" data-act="wind" aria-label="听听风怎么说：随机遇见一件事"></button>
+    <span class="seed-count" id="seedCount" aria-hidden="true">0</span>
+
+    <div class="hotspots" id="hotspots"></div>
+    <div class="hint" id="hint">点点树上发光的地方，也可以让风替你选</div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div id="cardHost"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   1. 内容库：四个板块，每个板块 5 条，共 20 条
+   board: skill / person / interview / video
+   视频与文字来源均已核实；英文表达取自 TED 官方文字稿
+   ============================================================ */
+
+const BOARDS = {
+  skill:     { name:'学习一项技能', color:'#b07c22' },
+  person:    { name:'认识一个人物', color:'#8a5a2b' },
+  interview: { name:'随机一则访谈', color:'#5f7d45' },
+  video:     { name:'随机英文视频', color:'#4f6473' }
+};
+const GARDEN = { name:'我的种子', color:'#a4556a' };
+
+// 60% 偏向这些兴趣，40% 完全随机
+const PREF = ['ai','product','career','english','people','art','life'];
+
+const CONTENT = [
+  /* ================= 学习一项技能 ================= */
+  {
+    id:'skill-pen', board:'skill', tags:['life'],
+    title:'十分钟，学会转笔的第一个动作',
+    hook:'一支笔、一只手、十分钟。会一点点，就够在等车的时候有事做了。',
+    meta:'约 10 分钟 · 不需要基础',
+    intro:'转笔不是天赋，是几个固定动作的叠加。第一个动作只需要让笔在虎口转半圈，再稳稳接住。',
+    steps:[
+      '选一支两端重量接近的笔，去掉笔夹，重心会更稳。',
+      '把笔夹在拇指和食指之间，让它在虎口里绕半圈，用手掌接住。',
+      '连续做十次不掉，再换到指背上练第二个动作。'
+    ],
+    sections:[
+      { label:'学习价值', text:'它几乎不占地方，也不需要天赋。练会一个动作，你会在很多无聊的缝隙里多一个选择。' },
+      { label:'应用场景', text:'等车、开会、电话响之前的那几秒。手上有点事做，人会松下来。' },
+      { label:'一个简单实践', text:'今晚看剧的时候，只练“虎口转半圈”这一个动作，练十分钟就停。' }
+    ],
+    resources:[
+      { label:'B 站：5 个适合新手的转笔教学', url:'https://www.bilibili.com/video/BV1fT4y1c7JU' },
+      { label:'B 站：三分钟教会一个简单单招', url:'https://www.bilibili.com/video/BV1Ab4y1o7YN' }
+    ],
+    video:{
+      platform:'bilibili', id:'BV1fT4y1c7JU', duration:'01:41',
+      url:'https://www.bilibili.com/video/BV1fT4y1c7JU',
+      title:'【转笔教学】5个超级适合新手的转笔教学',
+      why:'一分四十一秒，五个动作都是新手能上手的，没有炫技。'
+    }
+  },
+  {
+    id:'skill-coffee', board:'skill', tags:['life'],
+    title:'三分钟，冲一杯不难喝的咖啡',
+    hook:'不需要昂贵的器具，先把三个变量管住：粉、水温、时间。',
+    meta:'约 15 分钟 · 需要滤杯和手冲壶',
+    intro:'手冲咖啡听起来讲究，其实新手只要把三件事做对，味道就不会差：中细研磨、九十度上下的水、先闷蒸再分段注水。',
+    steps:[
+      '磨 15 克豆，中细度，摸起来像白砂糖。',
+      '水温 90–93 度，先倒一点水把粉全部打湿，等 30 秒。',
+      '分两到三次注水，总时间控制在两分半左右。'
+    ],
+    sections:[
+      { label:'学习价值', text:'它是少数“十分钟内能看到自己进步”的技能：同一包豆，换个水温，味道就不一样。' },
+      { label:'应用场景', text:'周末早上，或者需要把自己从床上叫醒的那一天。' },
+      { label:'一个简单实践', text:'只改一个变量：这周固定水温，下周换研磨度，记下两次的味道差别。' }
+    ],
+    resources:[
+      { label:'B 站：3 分钟学会自己冲手冲咖啡', url:'https://www.bilibili.com/video/BV1M54y1G7un' },
+      { label:'B 站：手冲新手第一课 · 器具', url:'https://www.bilibili.com/video/BV1SG411u7hb' }
+    ],
+    video:{
+      platform:'bilibili', id:'BV1M54y1G7un', duration:'03:01',
+      url:'https://www.bilibili.com/video/BV1M54y1G7un',
+      title:'超详细讲解·新手友好｜3分钟学会自己冲手冲咖啡',
+      why:'真的只有三分钟：器具、粉水比、时间都讲清楚了，跟着做一次就能喝。'
+    }
+  },
+  {
+    id:'skill-photo', board:'skill', tags:['art'],
+    title:'用手机拍一张“有光”的照片',
+    hook:'不是换手机，也不是学参数。先学会找光，再学会做减法。',
+    meta:'约 10 分钟 · 一部手机',
+    intro:'大多数手机照片不好看，不是因为设备，是因为光太平、背景太乱、角度太普通。先改这三件事，照片会立刻不一样。',
+    steps:[
+      '先找光：让光从侧面来，脸或物体有一半落在亮处。',
+      '做减法：往前走两步，或者换个方向，让背景只剩一面墙或天空。',
+      '换个高度：蹲下来，或把手机举高，避开你平时站着的视角。'
+    ],
+    sections:[
+      { label:'学习价值', text:'你不是在学摄影，是在学“先看，再按快门”。这个习惯会迁移到你做别的事上。' },
+      { label:'应用场景', text:'旅行、吃饭、给朋友拍照，或者只是记录今天的光。' },
+      { label:'一个简单实践', text:'今天只拍一张照片，但按快门前先问自己：光从哪来？背景里有什么可以去掉？' }
+    ],
+    resources:[
+      { label:'B 站：4 招速成万能拍照法', url:'https://www.bilibili.com/video/BV11H4y1h7Cq' }
+    ],
+    video:{
+      platform:'bilibili', id:'BV11H4y1h7Cq', duration:'08:23',
+      url:'https://www.bilibili.com/video/BV11H4y1h7Cq',
+      title:'99%的人看完都学会拍照了！4招速成万能拍照法',
+      why:'八分钟只讲四件事：光、背景、角度、构图。没有器材广告，跟着拍就行。'
+    }
+  },
+  {
+    id:'skill-figma', board:'skill', tags:['product'],
+    title:'用 Figma 画出一个 App 首页',
+    hook:'你每天用几十个 App，但有没有试过自己画一个？',
+    meta:'约 30 分钟 · 免费账号即可',
+    intro:'Figma 是现在大多数产品团队在用的界面工具。它不用写代码，先画一个首页，你就能理解一个 App 是怎么被“摆”出来的。',
+    steps:[
+      '新建一个 Frame，尺寸选 390×844（常见手机尺寸）。',
+      '用 Rectangle 画一张卡片，再用 Text 写上标题和副标题。',
+      '给卡片加 Auto Layout，设置 16px 内边距，拖动内容就能自动排版。'
+    ],
+    sections:[
+      { label:'学习价值', text:'画一遍，你会开始注意真实 App 里的间距、层级和对齐——这是“产品感”最便宜的入口。' },
+      { label:'应用场景', text:'把你脑子里的一个想法画出来给朋友看；或者面试时，用一张图说明你想要的界面。' },
+      { label:'一个简单实践', text:'临摹你每天用的一个 App 首页，不抄颜色，只临摹它的结构和间距。' }
+    ],
+    resources:[
+      { label:'B 站：零基础 20 分钟会用 Figma', url:'https://www.bilibili.com/video/BV16P411c7Lg' }
+    ],
+    video:{
+      platform:'bilibili', id:'BV16P411c7Lg', duration:'18:49',
+      url:'https://www.bilibili.com/video/BV16P411c7Lg',
+      title:'零基础也可以：20 分钟会用 Figma',
+      why:'从新建画板讲到组件，节奏适合完全没碰过设计工具的人。'
+    }
+  },
+  {
+    id:'skill-prompt', board:'skill', tags:['ai','career'],
+    title:'写一个“能用的”提示词',
+    hook:'同样一个问题，问法不同，结果差很远。提示词是把“想要什么”说清楚的能力。',
+    meta:'约 10 分钟 · 任意 AI 工具',
+    intro:'提示词不是咒语，是需求说明。把角色、任务、对象、格式说清楚，再给一个例子，结果通常会好很多。',
+    steps:[
+      '先写清四件事：你是谁、要做什么、给谁看、输出成什么格式。',
+      '给一个你满意的例子，让 AI 照着这个例子写。',
+      '让它先列提纲，你改完提纲，再让它写正文。'
+    ],
+    sections:[
+      { label:'学习价值', text:'它练的是“把模糊需求说具体”的能力。这个能力对写周报、提需求、跟人协作都成立。' },
+      { label:'应用场景', text:'整理会议记录、把一段想法变成提纲、让 AI 帮你改一段英文、生成一个表格结构。' },
+      { label:'一个简单实践', text:'拿你昨天写过的一段文字，让 AI 用“更短、更具体、去掉形容词”重写一遍，对比差别。' }
+    ],
+    resources:[
+      { label:'OpenAI · Prompt engineering 指南（英文）', url:'https://developers.openai.com/api/docs/guides/prompt-engineering' }
+    ]
+  },
+
+  /* ================= 认识一个人物 ================= */
+  {
+    id:'person-jane', board:'person', tags:['people'],
+    title:'她只是想知道，一只黑猩猩的一天怎么过',
+    hook:'二十六岁，没有学位，她带着母亲住进了非洲的森林。',
+    meta:'灵长类学家 · 1934—2025',
+    intro:'1960 年，简·古道尔到坦桑尼亚的贡贝观察黑猩猩。她没有大学文凭，靠的是耐心——每天在同一时间，出现在同一个地方。几个月后，她看见黑猩猩折下草茎、撸掉叶子，伸进白蚁窝里钓白蚁。“只有人类会使用工具”这句话被推翻了。',
+    beats:[
+      { label:'1957', text:'攒钱坐船去肯尼亚，直接找到人类学家路易斯·利基，问能不能跟他去看动物。' },
+      { label:'1960', text:'带着母亲住进贡贝，开始每天跟着黑猩猩走。' },
+      { label:'1966', text:'没有本科学位，直接拿到剑桥的博士学位。' }
+    ],
+    unique:'她的方法很笨：不干预，只是出现。时间长了，猩猩不再把她当威胁。',
+    question:'如果你每天在同一时间、同一地点观察同一件事，三个月后你会看到什么？',
+    video:{
+      platform:'ted', id:'jane_goodall_what_separates_us_from_chimpanzees',
+      url:'https://www.ted.com/talks/jane_goodall_what_separates_us_from_chimpanzees',
+      title:'What separates us from chimpanzees?',
+      why:'她自己讲这段经历。没有煽情，全是具体的事：怎么蹲点、怎么被猩猩接受。'
+    },
+    source:{ label:'Jane Goodall Institute', url:'https://janegoodall.org/' }
+  },
+  {
+    id:'person-lifei', board:'person', tags:['ai','people'],
+    title:'她让机器学会“看见”',
+    hook:'在教计算机认图片之前，她先问了一个更大的问题：我们怎么知道自己看见了什么？',
+    meta:'计算机视觉研究者 · 1976—',
+    intro:'李飞飞出生于北京，十六岁随家人移居美国。她在普林斯顿读物理，后来转向计算机视觉。2009 年，她的团队发布了 ImageNet——一个包含上千万张标注图片的数据集，让机器视觉研究有了共同的语言。',
+    beats:[
+      { label:'1976', text:'出生于北京，十六岁随家人移居美国。' },
+      { label:'2009', text:'ImageNet 发布，用海量标注图片训练机器识别物体。' },
+      { label:'2015', text:'TED 演讲《How we are teaching computers to understand pictures》。' }
+    ],
+    unique:'她反复强调：数据不是中性的。谁被拍进图片、谁被标注，决定了机器以后“看得见”谁。',
+    question:'如果机器只能从我们给它的图片里学习，那我们漏掉了什么？',
+    video:{
+      platform:'ted', id:'fei_fei_li_how_we_re_teaching_computers_to_understand_pictures',
+      url:'https://www.ted.com/talks/fei_fei_li_how_we_re_teaching_computers_to_understand_pictures',
+      title:'How we are teaching computers to understand pictures',
+      why:'她把 ImageNet 的起点讲得很具体：不是算法先突破，是先有人愿意去做那件又慢又笨的数据工作。'
+    },
+    source:{ label:'TED · Fei-Fei Li', url:'https://www.ted.com/speakers/fei_fei_li' }
+  },
+  {
+    id:'person-nakamura', board:'person', tags:['people'],
+    title:'一个医生，最后去修了水渠',
+    hook:'他发现病人不是死于没药，是死于没水。',
+    meta:'医生 · 1946—2019',
+    intro:'1984 年，中村哲去巴基斯坦白沙瓦的阿富汗难民营做内科医生。几年后他意识到，腹泻、营养不良和结核的根子不在药，在干旱和脏水。',
+    beats:[
+      { label:'1984', text:'作为内科医生前往白沙瓦，原本只打算待几年。' },
+      { label:'1990 年代', text:'带着当地人修水渠，用石头、水泥和一双手。' },
+      { label:'2019', text:'在阿富汗东部遇袭身亡。当地人叫他“穆拉德叔叔”。' }
+    ],
+    unique:'他做的事一直在他的专业之外。他的判断标准不是“我擅长什么”，是“这里最缺什么”。',
+    question:'你正在解决的问题，是表面症状，还是根子？',
+    video:{
+      platform:'bilibili', id:'BV13m4y1D74b', duration:'18:45',
+      url:'https://www.bilibili.com/video/BV13m4y1D74b',
+      title:'【中日双语】中村哲追悼会 · 语录朗读片段',
+      why:'他去世后，人们在追悼会上读他写过的话。先听他怎么说，再看他的选择。'
+    },
+    source:{ label:'ペシャワール会 / PMS', url:'https://www.peshawar-pms.com/' }
+  },
+  {
+    id:'person-anning', board:'person', tags:['people'],
+    title:'十三岁那年，她挖出了一条“龙”',
+    hook:'十二岁时，她和哥哥在崖壁上发现了一块奇怪的头骨；第二年冬天，她把它整个挖了出来。',
+    meta:'化石猎人 · 1799—1847',
+    intro:'玛丽·安宁住在英格兰的莱姆里吉斯，家里靠把海边捡到的化石卖给游客为生。1812 年，十三岁的她在悬崖下挖出一副五米长的鱼龙骨架。那时的人们还不相信“灭绝”。',
+    beats:[
+      { label:'1811', text:'十二岁，和哥哥在崖壁上发现一块奇怪的头骨。' },
+      { label:'1812', text:'独自把五米长的鱼龙骨架挖了出来。' },
+      { label:'1823', text:'发现第一具完整的蛇颈龙化石。' }
+    ],
+    unique:'她没有受过正式训练，也不被地质学会接纳。她的本事来自每天在海边敲石头。',
+    question:'如果一件事没有证书、没有头衔，你还会不会去做？',
+    source:{ label:'Natural History Museum · Mary Anning', url:'https://www.nhm.ac.uk/discover/mary-anning-unsung-hero.html' }
+  },
+  {
+    id:'person-bushby', board:'person', tags:['people'],
+    title:'他走了二十八年，刚刚走回家',
+    hook:'1998 年，他从智利最南端出发，打算一路走回英国。这个月，他才走到。',
+    meta:'徒步者 · Goliath 计划',
+    intro:'他叫 Karl Bushby，这条路叫 Goliath。他穿过达连地峡、走过白令海峡的浮冰、游过里海。原本计划十二年，最后用了二十八年——其中只有十五年真的在走。',
+    beats:[
+      { label:'1998', text:'从智利蓬塔阿雷纳斯出发，不使用任何机动交通工具。' },
+      { label:'2006', text:'和同伴徒步穿过白令海峡的浮冰。' },
+      { label:'2026', text:'走到英国，结束二十八年的路程。' }
+    ],
+    unique:'他中间数次中断、回国、再回到上次停下的地方。不是连续二十八年，是二十八年里一直没有放弃这条线。',
+    question:'一件事如果中间断了很多次，还算不算“坚持”？',
+    source:{ label:'Wikipedia · Karl Bushby', url:'https://en.wikipedia.org/wiki/Karl_Bushby' }
+  },
+
+  /* ================= 随机一则访谈 ================= */
+  {
+    id:'talk-yao', board:'interview', tags:['people','career'],
+    title:'“太听话的孩子，成不了书法家”',
+    hook:'姚明在一次访谈里，聊的不是篮球，是“听话”这件事的代价。',
+    meta:'嘉宾 姚明 · 主持 许知远 · 《十三邀》第九季',
+    intro:'这是《十三邀》第九季里许知远和姚明的一段对话。两分五十一秒，他讲的是：组织与纪律能带来赢球，但也可能框住孩子最该自由探索的阶段。',
+    points:[
+      '他用“田字格”和“书法家”作比：球场像田字格，孩子本应是书法家。',
+      '纪律能提高赢球概率，但代价可能是：孩子不敢做规定之外的动作。',
+      '他意识到“创造力”的那一刻，是第一次没有按教练意图跑战术。'
+    ],
+    detail:'视频简介记下了这段问答——问：“你什么时候意识到什么是创造力的？”姚明答：“在我第一次没有按教练意图跑战术的时候。”',
+    question:'你现在的“田字格”是什么？它保护了你，还是限制了你？',
+    video:{
+      platform:'bilibili', id:'BV19CFAzSEfx', duration:'02:51',
+      url:'https://www.bilibili.com/video/BV19CFAzSEfx',
+      title:'姚明：太“听话”的孩子，成不了书法家｜十三邀×姚明',
+      why:'两分五十一秒，他没有讲大道理，只讲“听话”这件事怎么塑造一个人。'
+    },
+    source:{ label:'B 站 · 十三邀', url:'https://www.bilibili.com/video/BV19CFAzSEfx' }
+  },
+  {
+    id:'talk-excop', board:'interview', tags:['people'],
+    title:'在看守所里，他最怕的不是被提防，是被认出来',
+    hook:'一个曾经是警察的人，后来进了看守所。他讲的是身份崩塌之后的事。',
+    meta:'讲述者 朋友列车 · 主持 凉子 · 《凉子访谈录》',
+    intro:'这是《凉子访谈录》的一期。受访者当了十几年警察，因为女友被猥亵、申诉无门，后来自己成了犯人。',
+    points:[
+      '在看守所里，所有人互相提防；但对他来说，最难的是别人知道他曾是警察。',
+      '一夜之间身份反转：从执法者变成被关的人，出狱后公职没了，女友也提了分手。',
+      '他说面对这一切，他不后悔。'
+    ],
+    detail:'节目把他的处境说得很具体：丢了公职、女友离开、身份归零。他没有用“值不值”来回答。',
+    question:'如果做一件对的事，代价是失去现在的生活，你还会做吗？',
+    video:{
+      platform:'bilibili', id:'BV12M41117yV', duration:'13:19',
+      url:'https://www.bilibili.com/video/BV12M41117yV',
+      title:'在看守所里，所有人都互相提防，我更怕他们知道我曾是警察',
+      why:'十三分钟，一个前警察讲身份崩塌之后的日子。没有猎奇，只有难堪和诚实。'
+    },
+    source:{ label:'B 站 · 凉子访谈录', url:'https://www.bilibili.com/video/BV12M41117yV' }
+  },
+  {
+    id:'talk-liutong', board:'interview', tags:['career','life'],
+    title:'45 岁才懂，真正的自由是“低电量活着”',
+    hook:'一个写畅销书的人，关掉朋友圈，搬去海南小镇，开始学画画。',
+    meta:'嘉宾 刘同 · 主持 凉子 · 《凉子访谈录》',
+    intro:'刘同，作家、光线影业副总裁。45 岁这年，他从影视行业的低谷里退到海南一个小镇，关掉朋友圈，重新安排自己的时间。',
+    points:[
+      '他理解的“躺平”不是什么都不做，而是屏蔽掉那些让你一边休息一边焦虑的比较。',
+      '一部九年前赔钱的电影在今年意外火了，让他更相信：好东西可以穿越时间周期。',
+      '面对 AI 写作，他说干货不值钱，反逻辑的、有温度的人味才是锚点。'
+    ],
+    detail:'他把时间花在一些“没用”的事上：学画画、给 17 岁的老狗画画、花上百遍练一首粤语歌。',
+    question:'如果不用向任何人证明自己，你会把时间花在哪？',
+    video:{
+      platform:'bilibili', id:'BV12qLb6eEfb', duration:'38:20',
+      url:'https://www.bilibili.com/video/BV12qLb6eEfb',
+      title:'刘同：45岁才懂，真正的自由是低电量活着',
+      why:'他把“躺平”和“焦虑地躺着”分得很清楚，也讲了那部赔钱电影九年后意外爆火的事。'
+    },
+    source:{ label:'B 站 · 凉子访谈录', url:'https://www.bilibili.com/video/BV12qLb6eEfb' }
+  },
+  {
+    id:'talk-hemingway', board:'interview', tags:['art','career'],
+    title:'他把《永别了，武器》的结尾改了三十九遍',
+    hook:'海明威谈写作，没有灵感，只有每天清晨、站着、写到中午。',
+    meta:'受访 海明威 · 采访 George Plimpton · 《巴黎评论》1958 年春',
+    intro:'这是《巴黎评论》“小说的艺术”系列第 21 期，1958 年春刊出。海明威谈的不是天赋，是纪律。',
+    points:[
+      '他每天天亮后尽早开始写，写到“知道接下来会发生什么”就停，让第二天有东西可接。',
+      '他每天先重写昨天写过的部分，全部完成后再整体改；改写不是失败，是流程。',
+      '《永别了，武器》的最后一页，他改了三十九遍才满意。'
+    ],
+    detail:'采访里写到他写作时的样子：站着，穿一双过大的乐福鞋，稿纸放在齐胸的阅读板上；写到中午，然后去游泳半英里。',
+    question:'你有没有一件事，愿意为最后那一页改三十九遍？',
+    source:{ label:'The Paris Review · Hemingway, The Art of Fiction No. 21', url:'https://www.theparisreview.org/interviews/4825/the-art-of-fiction-no-21-ernest-hemingway' }
+  },
+  {
+    id:'talk-murakami', board:'interview', tags:['art','life'],
+    title:'他逼自己写了一本百分之百现实主义的书',
+    hook:'村上春树谈《挪威的森林》：那是一次他必须完成的练习。',
+    meta:'受访 村上春树 · 采访 John Wray · 《巴黎评论》2004 年夏',
+    intro:'这是《巴黎评论》“小说的艺术”系列第 182 期。村上谈到他为什么在《挪威的森林》里突然转向 100% 现实主义，以及他更偏爱的超现实写法。',
+    points:[
+      '他的“本命”写法更接近《世界尽头与冷酷仙境》，而不是《挪威的森林》。',
+      '写《挪威的森林》时，他下定决心写一本百分之百现实主义的书，因为他需要那次经验。',
+      '《海边的卡夫卡》卖得好，他的解释是：故事复杂，但文字易读，中间有一种“魔法般的平衡”。'
+    ],
+    detail:'采访者写他说话时常有很长的停顿，谈到爵士和马拉松时，像年轻了二十岁。',
+    question:'你有没有为了练某种能力，故意去做一件“不是自己风格”的事？',
+    source:{ label:'The Paris Review · Murakami, The Art of Fiction No. 182', url:'https://www.theparisreview.org/interviews/2/the-art-of-fiction-no-182-haruki-murakami' }
+  },
+
+  /* ================= 随机英文视频 ================= */
+  {
+    id:'en-tim', board:'video', tags:['english','product'],
+    title:'拖延的人，脑子里住着一只猴子',
+    enTitle:'Inside the mind of a master procrastinator',
+    creator:'Tim Urban · TED2016',
+    hook:'为什么你明明知道该做，却还是打开了视频？',
+    meta:'TED2016 · Tim Urban',
+    intro:'Tim Urban 用一个手绘的比喻，把拖延时脑子里发生的事画了出来：理性决策者、即时满足猴子、恐慌怪兽。',
+    takeaways:[
+      '拖延者的脑子里除了“理性决策者”，还有一只只想要即时快乐的“即时满足猴子”。',
+      '猴子唯一害怕的是“恐慌怪兽”——它只在截止日期逼近时才醒来。',
+      '没有截止日期的事，恐慌怪兽不会出现，所以最容易被无限拖延。'
+    ],
+    expressions:[
+      { en:'Instant Gratification Monkey', zh:'即时满足猴子' },
+      { en:'the Panic Monster', zh:'恐慌怪兽' },
+      { en:'the Dark Playground', zh:'黑暗游乐场：在不该休闲的时候休闲' }
+    ],
+    question:'你生活里哪件事没有截止日期，因此一直被拖着？',
+    video:{
+      platform:'ted', id:'tim_urban_inside_the_mind_of_a_master_procrastinator',
+      url:'https://www.ted.com/talks/tim_urban_inside_the_mind_of_a_master_procrastinator',
+      title:'Inside the mind of a master procrastinator',
+      why:'语速不快，梗很密。你会听到 Instant Gratification Monkey，然后笑一下，因为说的就是你。'
+    },
+    source:{ label:'TED · Tim Urban', url:'https://www.ted.com/talks/tim_urban_inside_the_mind_of_a_master_procrastinator' }
+  },
+  {
+    id:'en-julian', board:'video', tags:['english','career'],
+    title:'怎么说话，别人才愿意听',
+    enTitle:'How to speak so that people want to listen',
+    creator:'Julian Treasure · TEDGlobal 2013',
+    hook:'一个声音专家用十分钟，拆开“说话”这件事。',
+    meta:'TEDGlobal 2013 · Julian Treasure',
+    intro:'Julian Treasure 讲的是为什么有人一开口你就想听，有人一开口你就走神。他先列了让人不想听的坏习惯，再给出四个可以站立的词。',
+    takeaways:[
+      '让人不想听的坏习惯包括：八卦、评判、消极、抱怨、借口、夸张、武断。',
+      '值得站立的四个词是 HAIL：honesty、authenticity、integrity、love。',
+      '声音是可以练的：音色、语调、语速、停顿，都能有意识地使用。'
+    ],
+    expressions:[
+      { en:'The word is "hail."', zh:'这四个词的首字母拼成 hail（欢呼、致敬）。' },
+      { en:'prosody', zh:'语调；说话的抑扬顿挫' },
+      { en:'vocal warm-up', zh:'开嗓练习' }
+    ],
+    question:'你上一次真正“被听见”，是什么时候？',
+    video:{
+      platform:'ted', id:'julian_treasure_how_to_speak_so_that_people_want_to_listen',
+      url:'https://www.ted.com/talks/julian_treasure_how_to_speak_so_that_people_want_to_listen',
+      title:'How to speak so that people want to listen',
+      why:'十分钟，他当场做了开嗓练习，也演示了同一句话用不同语调说出来的差别。'
+    },
+    source:{ label:'TED · Julian Treasure', url:'https://www.ted.com/talks/julian_treasure_how_to_speak_so_that_people_want_to_listen' }
+  },
+  {
+    id:'en-matt', board:'video', tags:['english','life'],
+    title:'试着做一件新事，坚持 30 天',
+    enTitle:'Try something new for 30 days',
+    creator:'Matt Cutts · TED2011',
+    hook:'30 天足够养成一个小习惯，也足够戒掉一个旧习惯。',
+    meta:'TED2011 · Matt Cutts',
+    intro:'Matt Cutts 用三年时间做了一组小实验：每个月试一件新事，坚持 30 天。他谈的不是意志力，是“小到能坚持”的尺度。',
+    takeaways:[
+      '30 天足够养成一个小习惯，也足够戒掉一个旧习惯。',
+      '“小而可持续的改变”比“宏大但坚持不了的目标”更容易留下来。',
+      '接下来的 30 天，无论你喜不喜欢都会过去——所以不如拿它试一件事。'
+    ],
+    expressions:[
+      { en:'small, sustainable changes', zh:'微小、可持续的改变' },
+      { en:'they were more likely to stick', zh:'它们更有可能坚持下来' },
+      { en:'give it a shot', zh:'试一试' }
+    ],
+    question:'如果只给你 30 天，你想试哪一件一直没开始的事？',
+    video:{
+      platform:'ted', id:'matt_cutts_try_something_new_for_30_days',
+      url:'https://www.ted.com/talks/matt_cutts_try_something_new_for_30_days',
+      title:'Try something new for 30 days',
+      why:'三分钟，没有废话。他把自己当实验品，讲了一个普通人真的能照做的尺度。'
+    },
+    source:{ label:'TED · Matt Cutts', url:'https://www.ted.com/talks/matt_cutts_try_something_new_for_30_days' }
+  },
+  {
+    id:'en-chimamanda', board:'video', tags:['english','people','art'],
+    title:'单一故事的危险',
+    enTitle:'The danger of a single story',
+    creator:'Chimamanda Ngozi Adichie · TED2009',
+    hook:'你对一个群体的印象，可能只是别人反复讲给你听的那一个版本。',
+    meta:'TED2009 · Chimamanda Ngozi Adichie',
+    intro:'尼日利亚作家 Chimamanda 讲她如何被“单一故事”塑造，又如何一次次发现它是错的：童年读的英国书、对美国室友的想象、对墨西哥人的偏见。',
+    takeaways:[
+      '单一故事不是谎言，它是不完整的真相，却会变成全部的印象。',
+      '要制造单一故事，只需要反复地把一群人呈现成同一种样子。',
+      '她第一次意识到：故事可以被用来伤害，也可以用来修复。'
+    ],
+    expressions:[
+      { en:'show a people as one thing, as only one thing', zh:'把一群人呈现成一种样子，唯一的一种样子' },
+      { en:'impressionable and vulnerable', zh:'容易受影响、脆弱' },
+      { en:'the danger of a single story', zh:'单一故事的危险' }
+    ],
+    question:'你对哪一个群体，只听过一个版本的故事？',
+    video:{
+      platform:'ted', id:'chimamanda_adichie_the_danger_of_a_single_story',
+      url:'https://www.ted.com/talks/chimamanda_adichie_the_danger_of_a_single_story',
+      title:'The danger of a single story',
+      why:'她用自己的尴尬和羞愧开场，不是讲道理，是讲她怎么一次次发现自己错了。'
+    },
+    source:{ label:'TED · Chimamanda Ngozi Adichie', url:'https://www.ted.com/talks/chimamanda_adichie_the_danger_of_a_single_story' }
+  },
+  {
+    id:'en-amy', board:'video', tags:['english','career'],
+    title:'你的身体姿势，会改变你自己',
+    enTitle:'Your body language may shape who you are',
+    creator:'Amy Cuddy · TEDGlobal 2012',
+    hook:'保持一个自信的姿势两分钟，不只是别人怎么看你，你自己的感觉也会变。',
+    meta:'TEDGlobal 2012 · Amy Cuddy',
+    intro:'社会心理学家 Amy Cuddy 讲“权力姿势”。需要说明的是，这项研究的后续重复实验存在争议；这场演讲仍值得看，但别把它当成定律。',
+    takeaways:[
+      '身体姿势不只影响别人对我们的判断，也影响我们对自己的判断。',
+      '她在演讲里建议：在重要场合前，用两分钟摆出一个更有力量感的姿势。',
+      '她后来修正了那句流行语：不是 fake it till you make it，而是 fake it till you become it。'
+    ],
+    expressions:[
+      { en:'power posing', zh:'权力姿势：用身体摆出自信的姿态' },
+      { en:'fake it till you make it', zh:'假装成功，直到真的成功' },
+      { en:'fake it till you become it', zh:'假装，直到它成为你的一部分' }
+    ],
+    question:'在你紧张之前，你会怎么使用自己的两分钟？',
+    video:{
+      platform:'ted', id:'amy_cuddy_your_body_language_shapes_who_you_are',
+      url:'https://www.ted.com/talks/amy_cuddy_your_body_language_shapes_who_you_are',
+      title:'Your body language may shape who you are',
+      why:'她的讲法很有现场感：让你先做两分钟姿势，再听她讲实验结果和争议。'
+    },
+    source:{ label:'TED · Amy Cuddy', url:'https://www.ted.com/talks/amy_cuddy_your_body_language_shapes_who_you_are' }
+  }
+  ,
+
+  /* ================= 随机惊喜（不在偏好清单里） ================= */
+  {
+    id:'skill-frottage', board:'skill', tags:['surprise'],
+    title:'用一张纸，把树皮的纹理拓下来',
+    hook:'不用相机，也不用画画。纸按上去，铅笔侧着一涂，纹理就出来了。',
+    meta:'约 10 分钟 · 一张纸、一支铅笔',
+    intro:'这叫拓印（frottage）。超现实主义画家马克斯·恩斯特用它记录地板和树叶的纹理；更早的时候，考古学家也用它来记录石碑。',
+    steps:[
+      '找一张薄一点的纸，和一支软铅笔（2B 以上）。',
+      '把纸按在树皮、硬币或台阶上，用手掌压住，别让它动。',
+      '铅笔侧锋来回涂，凸起的地方会先变黑。'
+    ],
+    sections:[
+      { label:'学习价值', text:'它让你用“触觉”看东西。同一棵树，拓正面和拓侧面，是两种纹理。' },
+      { label:'应用场景', text:'散步时、旅行时，给一个地方留一张不用拍照的“指纹”。' },
+      { label:'一个简单实践', text:'今天拓三样东西：树皮、一枚硬币、一片叶子。写下你最喜欢哪一张。' }
+    ],
+    resources:[
+      { label:'Wikipedia · Frottage（英文）', url:'https://en.wikipedia.org/wiki/Frottage' }
+    ]
+  },
+  {
+    id:'person-widder', board:'person', tags:['surprise'],
+    title:'她在黑暗的深海里，看见了光',
+    hook:'大部分海洋是黑的。但那里的动物，很多会自己发光。',
+    meta:'深海生物学家 · 1951—',
+    intro:'Edith Widder 研究深海生物发光。她在 1989 到 2005 年间主持 Harbor Branch 海洋研究所的生物发光部门，做过 250 多次深潜，后来共同创办了 ORCA。2011 年，她在 TED 上放了那些在黑暗里自己发光的东西。',
+    beats:[
+      { label:'1989–2005', text:'在 Harbor Branch 海洋研究所主持生物发光研究。' },
+      { label:'2005', text:'共同创办 ORCA，把研究转向海洋保护技术。' },
+      { label:'2011', text:'TED 演讲《The weird and wonderful world of bioluminescence》。' }
+    ],
+    unique:'她的工作一半是生物学，一半是工程：要看见深海，先得造出能到那里的眼睛。',
+    question:'如果一种生物从不出现在光里，我们怎么知道它存在？',
+    video:{
+      platform:'ted', id:'edith_widder_the_weird_and_wonderful_world_of_bioluminescence',
+      url:'https://www.ted.com/talks/edith_widder_the_weird_and_wonderful_world_of_bioluminescence',
+      title:'The weird and wonderful world of bioluminescence',
+      why:'她放的影像本身就是证据：那些光不是特效，是动物自己发的。'
+    },
+    source:{ label:'Wikipedia · Edith Widder', url:'https://en.wikipedia.org/wiki/Edith_Widder' }
+  },
+  {
+    id:'person-stamets', board:'person', tags:['surprise'],
+    title:'他说，蘑菇是地球的互联网',
+    hook:'在地面之下，菌丝把树和树连在一起。他管这个叫“自然的互联网”。',
+    meta:'真菌学家 · 1955—',
+    intro:'Paul Stamets 是真菌学家，也是 Fungi Perfecti 的创办人。他在 2008 年的 TED 演讲里列了六件菌丝体可能做到的事：清理污染土壤、做杀虫剂、对抗天花和流感病毒。',
+    beats:[
+      { label:'1979', text:'从 Evergreen State College 毕业，之后长期自学真菌学。' },
+      { label:'长期', text:'创办 Fungi Perfecti，研究菌丝体在医药和土壤修复中的用途。' },
+      { label:'2008', text:'TED 演讲《6 ways mushrooms can save the world》。' }
+    ],
+    unique:'他的身份更像“民间科学家”：没有博士学位，大部分知识来自森林和培养皿。',
+    question:'你身边有多少东西，其实是菌丝在下面连着？',
+    video:{
+      platform:'ted', id:'paul_stamets_6_ways_mushrooms_can_save_the_world',
+      url:'https://www.ted.com/talks/paul_stamets_6_ways_mushrooms_can_save_the_world',
+      title:'6 ways mushrooms can save the world',
+      why:'他讲的六件事都很具体：从清理柴油污染到做驱虫剂，不是空想。'
+    },
+    source:{ label:'Wikipedia · Paul Stamets', url:'https://en.wikipedia.org/wiki/Paul_Stamets' }
+  },
+  {
+    id:'en-bees', board:'video', tags:['surprise','english'],
+    title:'蜜蜂正在消失，而我们还没弄明白为什么',
+    enTitle:'Why bees are disappearing',
+    creator:'Marla Spivak · TED2013',
+    hook:'蜜蜂已经活了五千万年。但最近几十年，蜂群开始成批死亡。',
+    meta:'TED2013 · Marla Spivak',
+    intro:'昆虫学家 Marla Spivak 讲蜂群崩溃背后的几个原因：单一作物、农药、寄生虫和营养不足。她不是只讲危机，也讲了普通人能做什么。',
+    takeaways:[
+      '单一作物让农场变成“农业食物荒漠”，蜜蜂找不到足够多样的花。',
+      '蜜蜂带回巢的花粉里，常常能检出六种以上的农药。',
+      '她给出的行动很具体：种花、减少农药、让农场多样化。'
+    ],
+    expressions:[
+      { en:'agricultural food deserts', zh:'农业食物荒漠：只有一两种作物、缺少花蜜的地方' },
+      { en:'crop monocultures', zh:'单一作物大规模种植' },
+      { en:'pollinators', zh:'传粉者' }
+    ],
+    question:'你住的地方，一年四季有花可开吗？',
+    video:{
+      platform:'ted', id:'marla_spivak_why_bees_are_disappearing',
+      url:'https://www.ted.com/talks/marla_spivak_why_bees_are_disappearing',
+      title:'Why bees are disappearing',
+      why:'她把一个很大的环境问题，拆成了四个可以理解的原因，最后落到“种花”这种小事上。'
+    },
+    source:{ label:'TED · Marla Spivak', url:'https://www.ted.com/talks/marla_spivak_why_bees_are_disappearing' }
+  }
+];
+
+/* ============================================================
+   2. 树上可以点的地方
+   坐标 = 画稿里的百分比。左边两个果实、树洞、花、长椅上的鸟、花圃。
+   ============================================================ */
+
+const HOTSPOTS = [
+  { id:'h-fruit-1', board:'skill',     x:54.15, y:34.85, label:'树冠的果实',
+    tip:'学习一项技能 · 挑一件今天能上手的小事', spark:true, ring:false },
+  { id:'h-fruit-2', board:'skill',     x:84.20, y:40.30, label:'另一颗果实',
+    tip:'学习一项技能 · 再换一个技能看看', spark:true, ring:false },
+  { id:'h-hole',    board:'person',    x:68.05, y:59.60, label:'树根处的树洞',
+    tip:'认识一个人物 · 一段真实的人生', ring:true },
+  { id:'h-flower',  board:'interview', x:44.10, y:77.75, label:'草地上的一朵花',
+    tip:'随机一则访谈 · 听别人怎么想', ring:false },
+  { id:'h-bird',    board:'video',     x:63.20, y:64.20, label:'长椅上的鸟',
+    tip:'随机英文视频 · 看完顺便学几句', ring:false },
+  { id:'h-garden',  board:'garden',    x:76.40, y:74.55, label:'花圃',
+    tip:'我的种子 · 你留下过的好奇都长在这里', ring:true }
+];
+
+/* ============================================================
+   3. 状态
+   ============================================================ */
+
+const KEY = 'lifeanchors.mini.v2';
+const state = { seeds:[], seen:[], hidden:[], finished:[], motion:'auto' };
+
+const validIds = list => Array.isArray(list) ? list.filter(id=>CONTENT.some(c=>c.id===id)) : null;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    const seeds = validIds(s.seeds);      if(seeds) state.seeds = seeds;
+    const seen = validIds(s.seen);        if(seen) state.seen = seen;
+    const hidden = validIds(s.hidden);    if(hidden) state.hidden = hidden;
+    const finished = validIds(s.finished); if(finished) state.finished = finished;
+    if(s.motion === 'reduce' || s.motion === 'full') state.motion = s.motion;
+  }catch(e){}
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+}
+
+/* ============================================================
+   4. 基础
+   ============================================================ */
+
+const $  = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const byId = id => CONTENT.find(n=>n.id===id);
+const colorOf = b => b==='garden' ? GARDEN.color : (BOARDS[b]?.color || '#8a8a8a');
+const nameOf  = b => b==='garden' ? GARDEN.name  : (BOARDS[b]?.name || '');
+const PLATFORM = { bilibili:'B 站', ted:'TED', youtube:'YouTube' };
+
+const world   = $('#world');
+const stage   = $('#stage');
+const art     = $('#art');
+const bgBlur  = $('.bg-blur');
+const motesEl = $('#motes');
+const hotspotsEl = $('#hotspots');
+const cardHost = $('#cardHost');
+const toastEl = $('#toast');
+const seedCount = $('#seedCount');
+const hintEl = $('#hint');
+
+const mqReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+const RATIO = 1672 / 941;
+
+let currentAnchor = null;   // 卡片是从哪儿打开的
+let currentId = null;       // 当前打开的是哪一条
+let lastFocus = null;
+
+/* ============================================================
+   5. 舞台尺寸：让画稿完整显示，宽屏两侧用模糊延展
+   ============================================================ */
+
+function fitStage(){
+  const vw = innerWidth, vh = innerHeight;
+  let w = vw, h = w / RATIO;
+  if(h > vh){ h = vh; w = h * RATIO; }
+  stage.style.width  = Math.round(w) + 'px';
+  stage.style.height = Math.round(h) + 'px';
+
+  // 模糊底图与舞台同尺寸：让模糊从画面自身的边缘往外渗，颜色才接得上
+  const bw = w, bh = h;
+  bgBlur.style.width  = Math.round(bw) + 'px';
+  bgBlur.style.height = Math.round(bh) + 'px';
+  bgBlur.style.left   = Math.round((vw - bw) / 2) + 'px';
+  bgBlur.style.top    = Math.round((vh - bh) / 2) + 'px';
+
+  const viewRatio = vw / vh;
+  world.dataset.bleed = viewRatio > RATIO + .004 ? 'x'
+                      : viewRatio < RATIO - .004 ? 'y'
+                      : '';
+}
+addEventListener('resize', fitStage);
+
+/* ============================================================
+   6. 浮尘
+   ============================================================ */
+
+function makeMotes(){
+  let seed = 19981101;
+  const rnd = ()=> (seed = (seed*16807) % 2147483647) / 2147483647;
+  let html = '';
+  for(let i=0;i<9;i++){
+    const size = 1.4 + rnd()*2.2;
+    html += `<span class="mote" style="
+      left:${(8+rnd()*84).toFixed(2)}%;
+      top:${(24+rnd()*64).toFixed(2)}%;
+      width:${size.toFixed(1)}px;height:${size.toFixed(1)}px;
+      --dx:${(rnd()*30-15).toFixed(0)}px;
+      --dy:${(-40-rnd()*70).toFixed(0)}px;
+      --dur:${(18+rnd()*18).toFixed(1)}s;
+      --delay:${(-rnd()*30).toFixed(1)}s;
+      --o:${(.22+rnd()*.34).toFixed(2)};
+    "></span>`;
+  }
+  motesEl.innerHTML = html;
+}
+
+/* ============================================================
+   7. 热点
+   ============================================================ */
+
+function renderHotspots(){
+  hotspotsEl.innerHTML = HOTSPOTS.map(h=>`
+    <button class="hotspot" data-hotspot="${h.id}" data-ring="${h.ring}" data-pos="${h.y > 66 ? 'up' : 'down'}"
+      style="left:${h.x}%;top:${h.y}%;--accent:${colorOf(h.board)}"
+      aria-label="${esc(h.label)}：${esc(h.tip)}">
+      <span class="hs-ring"></span>
+      ${h.spark ? `<span class="hs-spark" style="--sd:${h.id.endsWith('2')?'4.4s':'0s'}"></span>` : ''}
+      <span class="hs-tip" aria-hidden="true">
+        <b>${esc(h.label)}</b>
+        <i>${esc(h.tip)}</i>
+      </span>
+    </button>`).join('');
+}
+
+hotspotsEl.addEventListener('click', e=>{
+  const el = e.target.closest('.hotspot');
+  if(!el) return;
+  e.stopPropagation();
+  const h = HOTSPOTS.find(x=>x.id===el.dataset.hotspot);
+  if(!h) return;
+  if(h.board === 'garden'){ openGarden(el); return; }
+  const node = pickByBoard(h.board);
+  if(node) openCard(node.id, el);
+  else toast('这个板块的内容都被你收起来了');
+});
+
+function pickByBoard(board){
+  const all = CONTENT.filter(n=>n.board===board && !state.hidden.includes(n.id));
+  if(!all.length) return null;
+  const unseen = all.filter(n=>!state.seen.includes(n.id));
+  const pool = unseen.length ? unseen : all;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+/* ============================================================
+   8. 卡片
+   ============================================================ */
+
+function embedSrc(v, autoplay){
+  if(v.platform === 'bilibili')
+    return `https://player.bilibili.com/player.html?bvid=${v.id}&page=1&high_quality=1&danmaku=0${autoplay?'&autoplay=1':''}`;
+  if(v.platform === 'ted')
+    return `https://embed.ted.com/talks/${v.id}${autoplay?'?autoplay=1':''}`;
+  if(v.platform === 'youtube')
+    return `https://www.youtube-nocookie.com/embed/${v.id}?rel=0${autoplay?'&autoplay=1':''}`;
+  return '';
+}
+
+function boardBody(n){
+  if(n.board === 'skill'){
+    return `
+      <div class="blk">
+        <h3>三个入门步骤</h3>
+        <ol class="steps">${n.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
+      </div>
+      ${(n.sections || []).map(s=>`<div class="blk"><h3>${esc(s.label)}</h3><p>${esc(s.text)}</p></div>`).join('')}
+      ${n.resources && n.resources.length ? `
+      <div class="blk">
+        <h3>继续学</h3>
+        <div class="res">${n.resources.map(r=>`<a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.label)} ↗</a>`).join('')}</div>
+      </div>` : ''}`;
+  }
+
+  if(n.board === 'person'){
+    return `
+      <div class="timeline">${(n.beats || []).map(b=>`<div class="tl"><span>${esc(b.label)}</span><p>${esc(b.text)}</p></div>`).join('')}</div>
+      ${n.unique ? `<div class="note"><h3>独特之处</h3><p>${esc(n.unique)}</p></div>` : ''}
+      ${n.question ? `<div class="note q"><h3>留一个问题</h3><p>${esc(n.question)}</p></div>` : ''}`;
+  }
+
+  if(n.board === 'interview'){
+    return `
+      <div class="points">${(n.points || []).map((p,i)=>`<div class="pt"><i>${i+1}</i><p>${esc(p)}</p></div>`).join('')}</div>
+      ${n.detail ? `<div class="note"><h3>一个真实细节</h3><p>${esc(n.detail)}</p></div>` : ''}
+      ${n.question ? `<div class="note q"><h3>延伸思考</h3><p>${esc(n.question)}</p></div>` : ''}`;
+  }
+
+  return `
+    <div class="blk">
+      <h3>三个内容收获</h3>
+      <ul class="takeaways">${(n.takeaways || []).map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
+    </div>
+    <div class="blk">
+      <h3>三个真实英语表达</h3>
+      <div class="exprs">${(n.expressions || []).map(e=>`<div class="expr"><b>${esc(e.en)}</b><span>${esc(e.zh)}</span></div>`).join('')}</div>
+    </div>
+    ${n.question ? `<div class="note q"><h3>延伸思考</h3><p>${esc(n.question)}</p></div>` : ''}`;
+}
+
+function openCard(id, anchor){
+  const n = byId(id);
+  if(!n) return;
+  if(state.hidden.includes(id)){ toast('这条已经被你收起来了'); return; }
+  if(!state.seen.includes(id)){ state.seen.push(id); save(); }
+
+  currentId = id;
+  currentAnchor = anchor || stage;
+  if(!document.body.contains(cardHost.firstElementChild)) lastFocus = document.activeElement;
+
+  const seeded = state.seeds.includes(id);
+  const v = n.video;
+  const platform = v ? (PLATFORM[v.platform] || v.platform) : '';
+
+  cardHost.innerHTML = `
+  <article class="card is-page is-video ${v ? '' : 'no-video'}" role="dialog" aria-modal="true" aria-labelledby="cardTitle" style="--accent:${colorOf(n.board)}">
+    <button class="card-close" data-act="close" aria-label="关掉这一页">×</button>
+
+    <div class="video-grid">
+      <div class="video-left">
+        ${v ? `<div class="player">
+          <button class="player-cover" data-act="play" data-id="${esc(n.id)}" aria-label="播放：${esc(v.title || '视频')}">
+            <span class="play-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>
+            </span>
+            <span class="cover-title">${esc(v.title || '')}</span>
+            <span class="cover-meta">${esc(platform)}${v.duration ? ' · ' + esc(v.duration) : ''} · 点击播放</span>
+          </button>
+        </div>` : ''}
+
+        ${v ? `<div class="player-meta">
+          <span>${esc(platform)}${v.duration ? ' · ' + esc(v.duration) : ''}</span>
+          <a href="${esc(v.url)}" target="_blank" rel="noopener noreferrer">原视频 ↗</a>
+        </div>
+        <div class="why">
+          <span>为什么是它</span>
+          <p>${esc(v.why)}</p>
+        </div>
+        <p class="player-note">如果播放器没加载，点上面的「原视频」去平台看。</p>` : ''}
+      </div>
+
+      <div class="video-right">
+        <p class="card-kicker"><i></i>${esc(nameOf(n.board))}</p>
+        ${n.board === 'video'
+          ? `<p class="card-meta">${esc(n.enTitle || '')}${n.creator ? ' · ' + esc(n.creator) : ''}</p>`
+          : (n.meta ? `<p class="card-meta">${esc(n.meta)}</p>` : '')}
+        <h2 class="card-title" id="cardTitle">${esc(n.title)}</h2>
+        <p class="card-hook">${esc(n.hook)}</p>
+        <p class="card-body">${esc(n.intro)}</p>
+        ${boardBody(n)}
+        ${n.source ? `<a class="card-src" href="${esc(n.source.url)}" target="_blank" rel="noopener noreferrer">资料来源：${esc(n.source.label)} ↗</a>` : ''}
+      </div>
+    </div>
+
+    <div class="page-bar">
+      <button class="seed-btn ${seeded?'is-seeded':''}" data-act="seed" data-id="${esc(n.id)}">
+        ${seedIcon()}<span>${seeded?'已留一颗种子':'留一颗种子'}</span>
+      </button>
+      <div class="bar-actions">
+        <button class="ghost-btn" data-act="hide" data-id="${esc(n.id)}">不感兴趣</button>
+        <button class="ghost-btn accent" data-act="finished" data-id="${esc(n.id)}">已看完</button>
+        <button class="again-btn" data-act="again">再发现一个 →</button>
+      </div>
+    </div>
+  </article>`;
+
+  const card = cardHost.firstElementChild;
+  setOrigin(card, currentAnchor);
+  showScrim();
+  // 标记内容是否超出可滚动区域（也方便以后做“还有内容”的提示）
+  requestAnimationFrame(()=>{
+    const boxes = [card.querySelector('.video-grid'), card.querySelector('.video-right')];
+    const canScroll = boxes.some(el => el
+      && /auto|scroll/.test(getComputedStyle(el).overflowY)
+      && el.scrollHeight > el.clientHeight + 2);
+    card.toggleAttribute('data-scrollable', canScroll);
+    card.querySelector('.card-close')?.focus({preventScroll:true});
+  });
+}
+
+/* 卡片居中后不再需要避让，只让放大动画从你点的那个东西的方向长出来 */
+function setOrigin(card, anchor){
+  if(!anchor || !anchor.getBoundingClientRect) return;
+  const r = anchor.getBoundingClientRect();
+  const w = card.offsetWidth, h = card.offsetHeight;
+  const ox = Math.max(-120, Math.min(w + 120, r.left + r.width/2 - (innerWidth - w)/2));
+  const oy = Math.max(-120, Math.min(h + 120, r.top + r.height/2 - (innerHeight - h)/2));
+  card.style.transformOrigin = `${ox}px ${oy}px`;
+}
+
+function showScrim(){ $('#scrim').classList.add('on'); }
+function hideScrim(){ $('#scrim').classList.remove('on'); }
+
+function centerAnchor(){
+  return {
+    getBoundingClientRect(){
+      const r = stage.getBoundingClientRect();
+      const cx = r.left + r.width/2, cy = r.top + r.height/2;
+      return { left:cx, top:cy, right:cx, bottom:cy, width:0, height:0 };
+    }
+  };
+}
+
+function closeCard(){
+  if(!cardHost.firstElementChild) return;
+  cardHost.innerHTML = '';
+  hideScrim();
+  currentAnchor = null;
+  currentId = null;
+  if(lastFocus && lastFocus.focus) lastFocus.focus({preventScroll:true});
+  lastFocus = null;
+}
+
+/* 不感兴趣：永久移出内容池，种子和记录也一并清掉 */
+function hideItem(id){
+  if(!state.hidden.includes(id)) state.hidden.push(id);
+  state.seeds = state.seeds.filter(x=>x!==id);
+  state.finished = state.finished.filter(x=>x!==id);
+  save();
+  renderSeedCount();
+  closeCard();
+  toast('好，这条不会再出现了');
+}
+
+/* 已看完：记一笔，然后随机换一条；以后仍可能被随机抽到 */
+function finishItem(id){
+  if(!state.finished.includes(id)) state.finished.push(id);
+  save();
+  const next = pickRandom(id);
+  if(next){ openCard(next.id, centerAnchor()); toast('已看完 · 换一条'); }
+  else { closeCard(); toast('内容都被你收起来了'); }
+}
+
+function seedIcon(){
+  return `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M12 21c0-5 2.5-8.5 7-10-1 6-3.5 9-7 10Z" fill="currentColor" opacity=".85"/>
+    <path d="M12 21c0-5-2.5-8.5-7-10 1 6 3.5 9 7 10Z" fill="currentColor" opacity=".55"/>
+    <path d="M12 22V11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    <circle cx="12" cy="6" r="2.2" fill="currentColor" opacity=".9"/>
+  </svg>`;
+}
+
+/* ============================================================
+   9. 种子花园
+   ============================================================ */
+
+function openGarden(anchor){
+  currentAnchor = anchor || stage;
+  if(!document.body.contains(cardHost.firstElementChild)) lastFocus = document.activeElement;
+
+  const seeds = state.seeds.map(byId).filter(Boolean);
+
+  cardHost.innerHTML = `
+  <article class="card is-sheet" role="dialog" aria-modal="true" aria-labelledby="cardTitle" style="--accent:${GARDEN.color}">
+    <button class="card-close" data-act="close" aria-label="关掉">×</button>
+
+    <div class="sheet-scroll">
+      <p class="card-kicker"><i></i>${GARDEN.name}</p>
+      <h2 class="card-title" id="cardTitle">${seeds.length ? `你种下了 ${seeds.length} 颗种子` : '这里还是空的'}</h2>
+      <p class="garden-sub">${seeds.length
+        ? '它们只代表一件事：这些事曾经让你产生过好奇。'
+        : '在树上遇到喜欢的东西，就留一颗。它不是任务，只是你好奇过的证据。'}</p>
+
+      ${seeds.length ? `
+        <div class="seed-list">
+          ${seeds.map(n=>`
+            <div class="seed-row" data-act="open-seed" data-id="${esc(n.id)}" style="--accent:${colorOf(n.board)}" role="button" tabindex="0">
+              <i aria-hidden="true"></i>
+              <b>${esc(n.title)}</b>
+              <small>${esc(nameOf(n.board))}</small>
+              <button class="x" data-act="unseed" data-id="${esc(n.id)}" aria-label="收回：${esc(n.title)}">×</button>
+            </div>`).join('')}
+        </div>` : `
+        <div class="empty">
+          ${emptySeed()}
+          <p>你的花园还没开始长。</p>
+          <small>不用想好要找到什么，随便点一个就好。</small>
+          <button data-act="close">回树上去看看</button>
+        </div>`}
+    </div>
+
+    <div class="page-bar">
+      <button class="mini-btn" data-act="toggle-motion" aria-pressed="${isReduced()}">减少动效</button>
+      <span class="note">${state.finished.length ? `已看完 ${state.finished.length} 条 · ` : ''}只保存在这台设备上</span>
+    </div>
+  </article>`;
+
+  const card = cardHost.firstElementChild;
+  setOrigin(card, currentAnchor);
+  showScrim();
+  requestAnimationFrame(()=> card.querySelector('.card-close')?.focus({preventScroll:true}));
+}
+
+function emptySeed(){
+  return `<svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+    <path d="M32 56c0-13 6-22 18-26-2 15-9 23-18 26Z" fill="#9db885" opacity=".5"/>
+    <path d="M32 56c0-13-6-22-18-26 2 15 9 23 18 26Z" fill="#7f9e6a" opacity=".38"/>
+    <path d="M32 58V30" stroke="#a8762a" stroke-width="1.5" stroke-linecap="round" opacity=".5"/>
+    <ellipse cx="32" cy="18" rx="11" ry="13" fill="#c9a86f" opacity=".26"/>
+  </svg>`;
+}
+
+function toggleSeed(id){
+  const i = state.seeds.indexOf(id);
+  if(i > -1){
+    state.seeds.splice(i,1);
+    toast('种子已收回');
+  }else{
+    state.seeds.push(id);
+    toast('好，它先在花园里待着');
+  }
+  save();
+  renderSeedCount();
+
+  const btn = $('.seed-btn');
+  if(btn && btn.dataset.id === id){
+    const on = state.seeds.includes(id);
+    btn.classList.toggle('is-seeded', on);
+    const label = btn.querySelector('span');
+    if(label) label.textContent = on ? '已留一颗种子' : '留一颗种子';
+  }
+}
+
+function renderSeedCount(){
+  seedCount.textContent = state.seeds.length;
+  seedCount.classList.toggle('on', state.seeds.length > 0);
+}
+
+/* ============================================================
+   10. 设置
+   ============================================================ */
+
+function openSettings(anchor){
+  currentAnchor = anchor || stage;
+  if(!document.body.contains(cardHost.firstElementChild)) lastFocus = document.activeElement;
+
+  cardHost.innerHTML = `
+  <article class="card is-sheet narrow" role="dialog" aria-modal="true" aria-labelledby="cardTitle" style="--accent:#6b6150">
+    <button class="card-close" data-act="close" aria-label="关掉">×</button>
+    <div class="sheet-scroll" style="padding:40px 34px 24px">
+      <p class="card-kicker"><i></i>设置</p>
+      <h2 class="card-title" id="cardTitle">少一点动静</h2>
+      <button class="set-row" data-act="toggle-motion" aria-pressed="${isReduced()}">
+        <span>减少动效<small>关掉浮尘、闪光和动画</small></span>
+        <span class="switch" aria-hidden="true"></span>
+      </button>
+      <button class="set-row" data-act="reset">
+        <span>清空我的记录<small>种子和看过的东西都会忘掉</small></span>
+        <span aria-hidden="true" style="color:#9a8a6c">↺</span>
+      </button>
+      ${state.hidden.length ? `
+      <button class="set-row" data-act="restore-hidden">
+        <span>放回不感兴趣的内容<small>已经收起来 ${state.hidden.length} 条</small></span>
+        <span aria-hidden="true" style="color:#9a8a6c">↩</span>
+      </button>` : ''}
+      <p style="margin:14px 0 0;font-size:11px;line-height:1.8;color:#9a8a6c">
+        没有账号，也不会上传。你看到的一切只留在这台设备的浏览器里。
+      </p>
+    </div>
+  </article>`;
+
+  const card = cardHost.firstElementChild;
+  setOrigin(card, currentAnchor);
+  showScrim();
+  requestAnimationFrame(()=> card.querySelector('.card-close')?.focus({preventScroll:true}));
+}
+
+/* ============================================================
+   11. 随机：听听风怎么说
+   ============================================================ */
+
+let windLock = false;
+let ambientTimer = 0;
+
+function wind(){
+  if(windLock) return;
+  windLock = true;
+
+  const node = pickRandom();
+  const anchor = centerAnchor();
+  const reduce = isReduced();
+
+  if(!reduce){
+    stage.classList.add('gusting');
+    fallLeaf();
+    setTimeout(()=>stage.classList.remove('gusting'), 1200);
+    setTimeout(()=>openCard(node.id, anchor), 430);
+    setTimeout(()=>{ windLock = false; }, 1300);
+  }else{
+    openCard(node.id, anchor);
+    setTimeout(()=>{ windLock = false; }, 400);
+  }
+}
+
+function pickRandom(excludeId){
+  const avail = CONTENT.filter(n=>!state.hidden.includes(n.id));
+  if(!avail.length){ toast('内容都被你收起来了'); return null; }
+
+  let pool = avail.filter(n=>!state.seen.includes(n.id) && n.id !== excludeId);
+  if(!pool.length){
+    state.seen = [];
+    save();
+    pool = avail.filter(n=>n.id !== excludeId);
+    toast('这一轮都看过了，风又吹了一遍');
+  }
+  if(!pool.length) pool = avail;
+
+  // 60% 来自你的偏好方向，40% 来自陌生领域（随机惊喜）
+  const isSurprise = n => (n.tags || []).includes('surprise');
+  const prefer = Math.random() < 0.6;
+  const preferredPool = pool.filter(n => !isSurprise(n));
+  const surprisePool  = pool.filter(n => isSurprise(n));
+  let source = prefer ? preferredPool : surprisePool;
+  if(!source.length) source = pool;
+
+  const boards = ['skill','person','interview','video'].filter(b=>source.some(n=>n.board===b));
+  const b = boards[Math.floor(Math.random()*boards.length)];
+  const pool2 = source.filter(n=>n.board===b);
+  return pool2[Math.floor(Math.random()*pool2.length)];
+}
+
+function leafSvg(){
+  return `<svg viewBox="0 0 32 32" fill="none">
+    <path d="M27 5C14 5 5 12 5 22c0 3 1 5 2 6 9 1 18-5 20-16 .3-2 .4-4 0-7Z" fill="#9db885" opacity=".9"/>
+    <path d="M8 26C12 18 18 12 26 7" stroke="#5f7d45" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>
+  </svg>`;
+}
+
+function fallLeaf(){
+  const leaf = document.createElement('div');
+  leaf.className = 'leaf-fall';
+  leaf.style.left = (24 + Math.random()*52) + '%';
+  leaf.style.setProperty('--sway', (Math.random()*80-40).toFixed(0) + 'px');
+  leaf.style.setProperty('--sway2', (Math.random()*120-60).toFixed(0) + 'px');
+  leaf.innerHTML = leafSvg();
+  stage.appendChild(leaf);
+  setTimeout(()=>leaf.remove(), 1700);
+}
+
+/* 平时每隔几秒飘一片，让画面一直是活的 */
+function ambientLeaf(){
+  const leaf = document.createElement('div');
+  leaf.className = 'leaf-fall ambient';
+  leaf.style.left = (6 + Math.random()*88) + '%';
+  leaf.style.setProperty('--sway', (Math.random()*120-60).toFixed(0) + 'px');
+  leaf.style.setProperty('--sway2', (Math.random()*180-90).toFixed(0) + 'px');
+  leaf.innerHTML = leafSvg();
+  stage.appendChild(leaf);
+  setTimeout(()=>leaf.remove(), 9300);
+}
+
+function scheduleAmbientLeaf(){
+  clearTimeout(ambientTimer);
+  if(isReduced()) return;
+  ambientTimer = setTimeout(()=>{
+    if(!document.hidden && !cardHost.firstElementChild) ambientLeaf();
+    scheduleAmbientLeaf();
+  }, 5500 + Math.random()*6500);
+}
+
+/* ============================================================
+   12. 动效偏好
+   ============================================================ */
+
+function isReduced(){
+  if(state.motion === 'reduce') return true;
+  if(state.motion === 'full') return false;
+  return mqReduce.matches;
+}
+function applyMotion(){
+  const reduced = isReduced();
+  document.documentElement.classList.toggle('reduce-motion', reduced);
+  scheduleAmbientLeaf();
+}
+mqReduce.addEventListener?.('change', ()=>{ if(state.motion==='auto') applyMotion(); });
+
+/* 鼠标轻微推动浮尘——只动前景，不动画稿，热点永远不跑偏 */
+stage.addEventListener('pointermove', e=>{
+  if(isReduced()) return;
+  const r = stage.getBoundingClientRect();
+  const dx = (e.clientX - r.left) / r.width - .5;
+  const dy = (e.clientY - r.top) / r.height - .5;
+  motesEl.style.setProperty('--mx', (dx * -12).toFixed(1) + 'px');
+  motesEl.style.setProperty('--my', (dy * -8).toFixed(1) + 'px');
+  stage.style.setProperty('--mx2', (dx * 16).toFixed(1) + 'px');
+  stage.style.setProperty('--my2', (dy * 10).toFixed(1) + 'px');
+});
+stage.addEventListener('pointerleave', ()=>{
+  motesEl.style.setProperty('--mx','0px');
+  motesEl.style.setProperty('--my','0px');
+  stage.style.setProperty('--mx2','0px');
+  stage.style.setProperty('--my2','0px');
+});
+
+/* ============================================================
+   13. 事件
+   ============================================================ */
+
+document.addEventListener('click', e=>{
+  const el = e.target.closest('[data-act]');
+  if(!el) {
+    // 点空白处收起卡片
+    if(!e.target.closest('.card')) closeCard();
+    return;
+  }
+  const act = el.dataset.act;
+
+  switch(act){
+    case 'home':    closeCard(); break;
+    case 'wind':    e.stopPropagation(); wind(); break;
+    case 'garden':  e.stopPropagation(); openGarden(el); break;
+    case 'settings':e.stopPropagation(); openSettings(el); break;
+    case 'close':   closeCard(); break;
+    case 'seed':    toggleSeed(el.dataset.id); break;
+    case 'play': {
+      const node = byId(el.dataset.id);
+      const wrap = el.closest('.player');
+      if(node && node.video && wrap){
+        wrap.innerHTML = `<iframe src="${esc(embedSrc(node.video, true))}"
+          title="${esc(node.video.title || '视频')}" allowfullscreen
+          allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+          referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+        wrap.querySelector('iframe').focus();
+      }
+      break;
+    }
+    case 'again': {
+      const next = pickRandom(currentId);
+      if(next) openCard(next.id, currentAnchor || centerAnchor());
+      else closeCard();
+      break;
+    }
+    case 'hide': {
+      hideItem(el.dataset.id || currentId);
+      break;
+    }
+    case 'finished': {
+      finishItem(el.dataset.id || currentId);
+      break;
+    }
+    case 'open-seed': {
+      if(e.target.closest('[data-act="unseed"]')) return;
+      const rectAnchor = { getBoundingClientRect: ()=> el.getBoundingClientRect() };
+      openCard(el.dataset.id, rectAnchor);
+      break;
+    }
+    case 'unseed': {
+      e.stopPropagation();
+      const id = el.dataset.id;
+      const i = state.seeds.indexOf(id);
+      if(i > -1) state.seeds.splice(i,1);
+      save(); renderSeedCount();
+      openGarden(currentAnchor);
+      toast('种子已收回');
+      break;
+    }
+    case 'toggle-motion': {
+      state.motion = isReduced() ? 'full' : 'reduce';
+      save(); applyMotion();
+      el.setAttribute('aria-pressed', String(isReduced()));
+      $$('.mini-btn[data-act="toggle-motion"], .set-row[data-act="toggle-motion"]').forEach(b=>{
+        b.setAttribute('aria-pressed', String(isReduced()));
+      });
+      break;
+    }
+    case 'reset': {
+      state.seeds = []; state.seen = []; state.hidden = []; state.finished = []; save();
+      renderSeedCount(); closeCard();
+      toast('都忘掉了，树还是原来那棵');
+      break;
+    }
+    case 'restore-hidden': {
+      state.hidden = []; save();
+      closeCard();
+      toast('都放回来了，下次可能再遇到');
+      break;
+    }
+  }
+});
+
+/* 种子行的键盘操作 */
+cardHost.addEventListener('keydown', e=>{
+  if(e.key !== 'Enter' && e.key !== ' ') return;
+  const row = e.target.closest('.seed-row');
+  if(!row || e.target.closest('.x')) return;
+  e.preventDefault();
+  const rectAnchor = { getBoundingClientRect: ()=> row.getBoundingClientRect() };
+  openCard(row.dataset.id, rectAnchor);
+});
+
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape'){ closeCard(); }
+  if(e.key === 'Tab' && cardHost.firstElementChild){
+    const f = $$('a[href],button:not([disabled]),[tabindex]:not([tabindex="-1"])', cardHost.firstElementChild)
+      .filter(x=>x.offsetParent !== null);
+    if(!f.length) return;
+    const first = f[0], last = f[f.length-1];
+    if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  }
+});
+
+/* ============================================================
+   14. Toast / 首次提示
+   ============================================================ */
+
+let toastTimer = 0;
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toastEl.classList.remove('on'), 2300);
+}
+
+/* ============================================================
+   15. 启动
+   ============================================================ */
+
+load();
+applyMotion();
+renderSeedCount();
+renderHotspots();
+makeMotes();
+fitStage();
+
+if(art.complete && art.naturalWidth) document.body.classList.add('ready');
+art.addEventListener('load', ()=> document.body.classList.add('ready'));
+art.addEventListener('error', ()=>{
+  document.body.classList.add('ready');
+  toast('没找到 assets/tree.jpg，先用水色撑住画面');
+});
+
+/* 深链：?c=内容 id 直接打开某一条（也方便分享） */
+try{
+  const openId = new URLSearchParams(location.search).get('c');
+  if(openId && byId(openId)) setTimeout(()=>openCard(openId, centerAnchor()), 280);
+}catch(e){}
+
+try{
+  if(!localStorage.getItem('lifeanchors.hinted')){
+    localStorage.setItem('lifeanchors.hinted','1');
+    setTimeout(()=>{
+      if(!cardHost.firstElementChild){
+        hintEl.classList.add('on');
+        setTimeout(()=>hintEl.classList.remove('on'), 9000);
+      }
+    }, 2200);
+  }
+}catch(e){}
+</script>
+</body>
+</html>
